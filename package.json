@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "d3-geo": "^3.1.1",
-    "topojson-client": "^3.1.0"
+    "idb": "^8.0.4",
+    "topojson-client": "^3.1.0",
+    "ts-fsrs": "^5.4.2"
   },
   "devDependencies": {
     "@types/d3-geo": "^3.1.1",
@@ -21,6 +23,7 @@
     "@types/topojson-client": "^3.1.5",
     "@types/topojson-specification": "^1.0.5",
     "mapshaper": "^0.7.98",
+    "polylabel": "^2.1.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"

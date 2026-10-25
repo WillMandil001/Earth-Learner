@@ -1,0 +1,30 @@
+{
+ "description": "Features that are not quiz items but count as part of a parent state when clicked during a 'find it' question. Everything else outside the scope (Western Sahara, Siachen Glacier, dependencies…) is not a valid answer.",
+ "merges": [
+  {
+   "id": "SOL",
+   "into": "SOM",
+   "reason": "Somaliland: self-declared, internationally recognised as part of Somalia"
+  },
+  {
+   "id": "CYN",
+   "into": "CYP",
+   "reason": "Northern Cyprus: recognised only by Türkiye; internationally part of Cyprus"
+  },
+  {
+   "id": "ALD",
+   "into": "FIN",
+   "reason": "Åland: autonomous region, integral part of Finland"
+  },
+  {
+   "id": "HKG",
+   "into": "CHN",
+   "reason": "Hong Kong: Special Administrative Region of China (review: could become its own item in a wider scope)"
+  },
+  {
+   "id": "MAC",
+   "into": "CHN",
+   "reason": "Macao: Special Administrative Region of China (review: could become its own item in a wider scope)"
+  }
+ ]
+}

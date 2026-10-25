@@ -8,9 +8,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import mapshaper from 'mapshaper';
 import * as topojson from 'topojson-client';
-import { geoArea, geoBounds, geoCentroid, geoDistance } from 'd3-geo';
+import { geoArea, geoBounds, geoCentroid, geoContains, geoDistance } from 'd3-geo';
+import polylabel from 'polylabel';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const DATA_SRC = join(ROOT, 'data-src');
 const CACHE = join(ROOT, 'scripts', '.cache');
 const OUT = join(ROOT, 'public', 'data');
 const SOURCE = (res) =>
@@ -25,6 +27,9 @@ const FIELDS = [
 ];
 const QUANTIZATION = { '110m': 50000, '50m': 100000 };
 const SOVEREIGN_TYPES = new Set(['Sovereign country', 'Country', 'Sovereignty']);
+const EARTH_RADIUS_KM = 6371.0088;
+/** Quiz scopes: name → source file. Add e.g. 'sovereign+dependencies' here later. */
+const SCOPES = { sovereign: 'scope-sovereign.json' };
 
 async function fetchSource(res) {
   const file = join(CACHE, `ne_${res}_admin_0_countries.geojson`);
@@ -88,6 +93,176 @@ function boundingCap(feature) {
 }
 
 const round = (x, d) => Math.round(x * 10 ** d) / 10 ** d;
+
+const readSource = async (name) => JSON.parse(await readFile(join(DATA_SRC, name), 'utf8'));
+
+/** Fails the build unless every scope entry maps to exactly one feature. */
+async function loadScopes(features) {
+  const counts = new Map();
+  for (const f of features) counts.set(f.properties.ADM0_A3, (counts.get(f.properties.ADM0_A3) ?? 0) + 1);
+  const scopes = {};
+  for (const [scope, file] of Object.entries(SCOPES)) {
+    const { entries } = await readSource(file);
+    const bad = entries.filter((e) => counts.get(e.id) !== 1);
+    const dupes = entries.filter((e, i) => entries.findIndex((x) => x.id === e.id) !== i);
+    if (bad.length || dupes.length) {
+      throw new Error(
+        `Scope '${scope}': ${bad.map((e) => `${e.name} (${e.id}) matches ${counts.get(e.id) ?? 0} features`).join('; ')}` +
+          (dupes.length ? `; duplicate entries ${dupes.map((e) => e.id).join(', ')}` : ''),
+      );
+    }
+    scopes[scope] = entries.map((e) => e.id).sort();
+  }
+  return scopes;
+}
+
+async function loadMerges(features, scopeIds) {
+  const ids = new Set(features.map((f) => f.properties.ADM0_A3));
+  const { merges } = await readSource('scoring-merges.json');
+  for (const m of merges) {
+    if (!ids.has(m.id) || !ids.has(m.into)) throw new Error(`scoring-merges: unknown feature ${m.id} → ${m.into}`);
+    if (scopeIds.has(m.id)) throw new Error(`scoring-merges: ${m.id} is itself a quiz item`);
+    if (!scopeIds.has(m.into)) throw new Error(`scoring-merges: ${m.into} is not in scope`);
+  }
+  return Object.fromEntries(merges.map((m) => [m.id, m.into]));
+}
+
+async function loadNames(features, scopeIds) {
+  const { countries } = await readSource('country-aliases.json');
+  const props = new Map(features.map((f) => [f.properties.ADM0_A3, f.properties]));
+  const missing = [...scopeIds].filter((id) => !countries[id]);
+  if (missing.length) throw new Error(`country-aliases: no entry for ${missing.join(', ')}`);
+  const names = {};
+  for (const id of [...scopeIds].sort()) {
+    const p = props.get(id);
+    const { display, aliases } = countries[id];
+    const accepted = [display, ...aliases, p.NAME, p.NAME_LONG, p.FORMAL_EN].filter(Boolean);
+    names[id] = { display, accepted: [...new Set(accepted)] };
+  }
+  return names;
+}
+
+function polygonsOf(f) {
+  return f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+}
+
+/**
+ * NE label points occasionally fall outside the country (e.g. New Zealand, offshore).
+ * Replace those with the pole of inaccessibility of the largest polygon, computed in a
+ * local equirectangular frame so longitude is not over-weighted at high latitudes.
+ */
+function fixLabelPoint(f, point) {
+  if (geoContains(f, point)) return null;
+  const largest = polygonsOf(f).reduce((a, b) =>
+    geoArea({ type: 'Polygon', coordinates: b }) > geoArea({ type: 'Polygon', coordinates: a }) ? b : a,
+  );
+  const lon0 = largest[0][0][0];
+  const lat0 = geoCentroid({ type: 'Polygon', coordinates: largest })[1];
+  const k = Math.cos((lat0 * Math.PI) / 180);
+  const unwrap = (lon) => lon0 + ((((lon - lon0 + 540) % 360) + 360) % 360) - 180;
+  const local = largest.map((ring) => ring.map(([lon, lat]) => [unwrap(lon) * k, lat]));
+  const [x, y] = polylabel(local, 0.01);
+  const lon = ((((x / k + 180) % 360) + 360) % 360) - 180;
+  return [round(lon, 4), round(y, 4)];
+}
+
+// ---- Border-to-border distances ----------------------------------------------
+
+const toVec = ([lon, lat]) => {
+  const l = (lon * Math.PI) / 180;
+  const p = (lat * Math.PI) / 180;
+  return [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)];
+};
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm = (a) => Math.hypot(a[0], a[1], a[2]);
+const angle = (a, b) => Math.atan2(norm(cross(a, b)), dot(a, b));
+
+/** Angular distance from point p to the great-circle arc a→b (all unit vectors). */
+function pointArc(p, a, b) {
+  const n = cross(a, b);
+  const len = norm(n);
+  if (len > 1e-12) {
+    const nh = [n[0] / len, n[1] / len, n[2] / len];
+    const d = dot(p, nh);
+    const q = [p[0] - d * nh[0], p[1] - d * nh[1], p[2] - d * nh[2]];
+    if (dot(cross(a, q), nh) >= 0 && dot(cross(q, b), nh) >= 0) return Math.asin(Math.min(1, Math.abs(d)));
+  }
+  return Math.min(angle(p, a), angle(p, b));
+}
+
+const SEGMENTS_PER_CHUNK = 24;
+
+/** Boundary segments of a feature, grouped into chunks with bounding caps. */
+function boundaryChunks(f) {
+  const chunks = [];
+  for (const poly of polygonsOf(f)) {
+    for (const ring of poly) {
+      const v = ring.map(toVec);
+      for (let i = 0; i < v.length - 1; i += SEGMENTS_PER_CHUNK) {
+        const pts = v.slice(i, i + SEGMENTS_PER_CHUNK + 1);
+        const sum = pts.reduce((s, p) => [s[0] + p[0], s[1] + p[1], s[2] + p[2]], [0, 0, 0]);
+        const l = norm(sum) || 1;
+        const centre = [sum[0] / l, sum[1] / l, sum[2] / l];
+        chunks.push({ pts, centre, radius: Math.max(...pts.map((p) => angle(centre, p))) });
+      }
+    }
+  }
+  return chunks;
+}
+
+function chunkDistance(a, b, best) {
+  for (let i = 0; i < a.pts.length - 1; i++) {
+    for (let j = 0; j < b.pts.length - 1; j++) {
+      best = Math.min(
+        best,
+        pointArc(a.pts[i], b.pts[j], b.pts[j + 1]),
+        pointArc(a.pts[i + 1], b.pts[j], b.pts[j + 1]),
+        pointArc(b.pts[j], a.pts[i], a.pts[i + 1]),
+        pointArc(b.pts[j + 1], a.pts[i], a.pts[i + 1]),
+      );
+    }
+  }
+  return best;
+}
+
+/** Branch and bound over chunk pairs, nearest-first by cap lower bound. */
+function boundaryDistance(ca, cb) {
+  const pairs = [];
+  for (const a of ca) for (const b of cb) pairs.push([Math.max(0, angle(a.centre, b.centre) - a.radius - b.radius), a, b]);
+  pairs.sort((x, y) => x[0] - y[0]);
+  let best = Infinity;
+  for (const [lb, a, b] of pairs) {
+    if (lb >= best) break;
+    best = chunkDistance(a, b, best);
+  }
+  return best;
+}
+
+/**
+ * Minimum border-to-border distance (km) between every pair of features, on the
+ * 110m-with-additions geometry. Land neighbours (50m topology) and enclosed shapes are 0.
+ * Stored as the upper triangle of the matrix, row-major, for ids in sorted order.
+ */
+function distanceMatrix(features, neighbours) {
+  const sorted = [...features].sort((a, b) => a.id.localeCompare(b.id));
+  const chunks = sorted.map(boundaryChunks);
+  const km = [];
+  for (let i = 0; i < sorted.length; i++) {
+    for (let j = i + 1; j < sorted.length; j++) {
+      const a = sorted[i];
+      const b = sorted[j];
+      let d = neighbours.get(a.id)?.has(b.id) ? 0 : boundaryDistance(chunks[i], chunks[j]) * EARTH_RADIUS_KM;
+      if (d > 0 && d < 300) {
+        const firstA = polygonsOf(a)[0][0][0];
+        const firstB = polygonsOf(b)[0][0][0];
+        if (geoContains(b, firstA) || geoContains(a, firstB)) d = 0;
+      }
+      km.push(Math.round(d));
+    }
+  }
+  return { ids: sorted.map((f) => f.id), km };
+}
 
 async function writeJson(name, data) {
   const file = join(OUT, name);
@@ -166,10 +341,33 @@ async function main() {
   records.sort((a, b) => a.id.localeCompare(b.id));
   const recoloured = resolveColours(records);
 
+  const featureById = new Map(fc50.features.map((f) => [f.id, f]));
+  const movedLabels = [];
+  for (const r of records) {
+    const fixed = fixLabelPoint(featureById.get(r.id), r.labelPoint);
+    if (!fixed) continue;
+    movedLabels.push(`${r.id} ${r.name}: [${r.labelPoint}] → [${fixed}]`);
+    r.neLabelPoint = r.labelPoint;
+    r.labelPoint = fixed;
+  }
+
+  const scopes = await loadScopes(src50.features);
+  const scopeIds = new Set(Object.values(scopes).flat());
+  const merges = await loadMerges(src50.features, scopeIds);
+  const names = await loadNames(src50.features, scopeIds);
+
+  const t0 = performance.now();
+  const fc110 = topojson.feature(topo110, topo110.objects.countries);
+  const neighbours = new Map(records.map((r) => [r.id, new Set(r.neighbours)]));
+  const distances = distanceMatrix(fc110.features, neighbours);
+  const distanceMs = performance.now() - t0;
+
   const files = [
     await writeJson('countries-110m.topo.json', topo110),
     await writeJson('countries-50m.topo.json', topo50),
     await writeJson('countries-meta.json', records),
+    await writeJson('quiz-data.json', { version: 1, scopes, merges, names }),
+    await writeJson('country-distances.json', distances),
   ];
 
   const missingSovereign = supplemented
@@ -182,6 +380,9 @@ async function main() {
   console.log(`Sovereign/country features missing at 110m (${missingSovereign.length}):\n  ${missingSovereign.join(', ')}`);
   console.log(`Countries with no land neighbours: ${records.filter((r) => !r.neighbours.length).length}`);
   console.log(`MAPCOLOR7 neighbour conflicts fixed (${recoloured.length}): ${recoloured.join(', ') || 'none'}`);
+  console.log(`Label anchors moved inside their country (${movedLabels.length}):\n  ${movedLabels.join('\n  ') || 'none'}`);
+  console.log(`Scopes: ${Object.entries(scopes).map(([k, v]) => `${k} ${v.length}`).join(', ')}; scoring merges: ${Object.entries(merges).map(([a, b]) => `${a}→${b}`).join(', ')}`);
+  console.log(`Distance matrix: ${distances.ids.length} features, ${distances.km.length} pairs in ${(distanceMs / 1000).toFixed(1)} s`);
   console.log(warnings.length ? `Warnings:\n  ${warnings.join('\n  ')}` : 'ID / winding issues: none');
   console.log('Output files:');
   for (const f of files) console.log(`  ${f.name.padEnd(28)} ${kb(f.raw).padStart(10)} raw  ${kb(f.gz).padStart(10)} gzip`);
