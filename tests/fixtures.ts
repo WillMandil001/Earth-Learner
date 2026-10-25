@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildCountryData } from '../src/data/loadCountries';
+import { buildCityData, type CityData } from '../src/layers/city/cityData';
 import { buildQuizData, type QuizData } from '../src/quiz/data';
 import type { CountryData } from '../src/types';
 
@@ -24,4 +25,11 @@ let quiz: QuizData | null = null;
 export function quizData(): QuizData {
   quiz ??= buildQuizData(read('quiz-data.json'), read('country-distances.json'));
   return quiz;
+}
+
+let cities: CityData | null = null;
+
+export function cityData(): CityData {
+  cities ??= buildCityData(read('cities.json'));
+  return cities;
 }

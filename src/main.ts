@@ -1,6 +1,8 @@
 import './style.css';
 import { loadCountries } from './data/loadCountries';
 import { Globe } from './globe/Globe';
+import { CityLayer } from './layers/city/cityLayer';
+import { loadCities } from './layers/city/cityData';
 import { CountryLayer } from './layers/country/countryLayer';
 import { QuizController } from './quiz/QuizController';
 import { loadQuizData } from './quiz/data';
@@ -13,6 +15,7 @@ import { createControls } from './ui/controls';
 import { DebugHud } from './ui/debugHud';
 import { h } from './ui/dom';
 import { InfoPanel } from './ui/infoPanel';
+import { LayersPanel } from './ui/layersPanel';
 import { MapMarkers } from './ui/mapMarkers';
 import { ModeSwitch, type AppMode } from './ui/modeSwitch';
 import { QuizPanel } from './ui/quizPanel';
@@ -29,16 +32,32 @@ async function main(): Promise<void> {
   const stage = document.getElementById('globe')!;
   const demo = new URLSearchParams(location.search).get('seed') === 'demo';
 
-  const [data, quizData, store] = await Promise.all([loadCountries(), loadQuizData(), openStore(demo ? DEMO_DB_NAME : DB_NAME)]);
+  const [data, quizData, cityData, store] = await Promise.all([
+    loadCountries(),
+    loadQuizData(),
+    loadCities(),
+    openStore(demo ? DEMO_DB_NAME : DB_NAME),
+  ]);
   const settings = await SettingsStore.load(store, new Set(quizData.scopes.sovereign));
   const countryLayer = new CountryLayer(quizData, data.meta);
+  const cityLayer = new CityLayer(cityData, data, {
+    name: (id) => countryLayer.displayName(id),
+    neighbours: (id) => data.meta.get(id)?.neighbours ?? [],
+  });
   if (demo && (await store.loadCards()).size === 0) {
     await store.replaceAll(generateDemoDump(clock.now(), countryLayer.introductionOrder(settings.value), settings.value));
   }
-  const quiz = await QuizController.create({ store, settings, layers: [countryLayer] });
+  const quiz = await QuizController.create({ store, settings, layers: [countryLayer, cityLayer] });
 
   const globe = new Globe(stage, data, { labelMode: 'all', homeCountry: settings.value.global.homeCountry });
   const markers = new MapMarkers(stage, globe);
+  globe.addLayer(cityLayer.render, { before: 'limbShade' });
+  globe.addLabelProvider(cityLayer.render);
+  const syncCities = () => {
+    cityLayer.render.setCities(cityLayer.renderCities(settings.value));
+    globe.redraw();
+  };
+  syncCities();
   const binding = new QuizGlobeBinding({ globe, markers }, quiz);
 
   // ---- Overlays ---------------------------------------------------------------
@@ -64,8 +83,16 @@ async function main(): Promise<void> {
     onTimeTravel: () => quizPanel.render(true),
   });
   const select = (id: string | null) => {
+    cityLayer.render.selected = null;
     globe.setSelected(id);
     infoPanel.show(id);
+  };
+  const selectCity = (id: string) => {
+    const city = cityLayer.city(id)!;
+    globe.setSelected(null);
+    cityLayer.render.selected = id;
+    globe.redraw();
+    infoPanel.showCity({ name: city.n, countryId: city.c, tier: cityLayer.tiers(settings.value).get(id) ?? 'city', population: city.p });
   };
   const infoPanel = new InfoPanel(
     rightStack,
@@ -76,6 +103,23 @@ async function main(): Promise<void> {
     },
     () => select(null),
   );
+  const layersPanel = new LayersPanel(app, [
+    {
+      id: 'countryLabels',
+      label: 'Country labels',
+      get: () => globe.getLabelMode() === 'all',
+      set: (on) => globe.setLabelMode(on ? 'all' : 'none'),
+    },
+    {
+      id: 'cities',
+      label: 'Cities',
+      get: () => cityLayer.render.visible,
+      set: (on) => {
+        cityLayer.render.visible = on;
+        globe.redraw();
+      },
+    },
+  ]);
   createControls(app, {
     zoomIn: () => void globe.flyTo({ zoom: globe.getCamera().zoom * 1.5 }, { duration: 300 }),
     zoomOut: () => void globe.flyTo({ zoom: globe.getCamera().zoom / 1.5 }, { duration: 300 }),
@@ -98,18 +142,22 @@ async function main(): Promise<void> {
     tooltip.hide();
     binding.setEnabled(m === 'learn');
     quizPanel.show(m === 'learn');
+    layersPanel.show(m === 'explore');
+    layersPanel.sync();
   }
 
   // ---- Globe events -------------------------------------------------------------
   globe.on('hover', (e) => {
-    const name = e.id && !inQuestion() ? data.meta.get(e.id)?.name : null;
+    const city = e.hit?.layer === cityLayer.render.id ? cityLayer.city(e.hit.id) : null;
+    const name = inQuestion() ? null : city ? `${city.n}, ${countryLayer.displayName(city.c)}` : e.id ? data.meta.get(e.id)?.name : null;
     if (name) tooltip.show(name, e.x, e.y);
     else tooltip.hide();
   });
   globe.on('click', (e) => {
-    if (mode === 'explore') return select(e.id);
+    const cityId = e.hit?.layer === cityLayer.render.id ? e.hit.id : null;
+    if (mode === 'explore') return cityId ? selectCity(cityId) : select(e.id);
     const p = quiz.state;
-    if (p.name === 'question' && p.spec.answer === 'click') quiz.answerClick({ lonLat: e.lonLat, countryId: e.id, cityId: null });
+    if (p.name === 'question' && p.spec.answer === 'click') quiz.answerClick({ lonLat: e.lonLat, countryId: e.id, cityId });
   });
   globe.on('dblclick', (e) => {
     if (mode === 'explore' && e.id) void globe.flyToCountry(e.id);
@@ -119,6 +167,7 @@ async function main(): Promise<void> {
   quiz.subscribe(() => hud.paint());
   settings.subscribe((s) => {
     globe.setHomeCountry(s.global.homeCountry);
+    syncCities();
     if (quiz.state.name === 'idle' || quiz.state.name === 'summary') quizPanel.render(true);
   });
 
@@ -142,7 +191,10 @@ async function main(): Promise<void> {
     }
     const key = e.key.toLowerCase();
     if (key === 'h') void globe.flyHome();
-    else if (key === 'l' && !inQuestion()) globe.setLabelMode(globe.getLabelMode() === 'all' ? 'none' : 'all');
+    else if (key === 'l' && !inQuestion()) {
+      globe.setLabelMode(globe.getLabelMode() === 'all' ? 'none' : 'all');
+      layersPanel.sync();
+    }
     else if (key === 'd') hud.toggle();
   });
 
@@ -156,7 +208,7 @@ async function main(): Promise<void> {
 
   if (import.meta.env.DEV) {
     // Handy for poking at the API from the console and for scripted checks.
-    Object.assign(window, { globe, quiz, settings, clock });
+    Object.assign(window, { globe, quiz, settings, clock, cityLayer });
   }
 }
 

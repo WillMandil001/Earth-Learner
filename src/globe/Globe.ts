@@ -1,4 +1,4 @@
-import { geoDistance, type GeoProjection } from 'd3-geo';
+import { geoDistance, type GeoPermissibleObjects, type GeoProjection } from 'd3-geo';
 import { DEVICE_PIXEL_RATIO_CAP, HOME_CONTEXT_FACTOR, HOME_COUNTRY, LOD } from '../config';
 import type { Camera, CountryData, CountryId, HighlightStyle, LabelMode, Lod, LonLat } from '../types';
 import { flightDuration, flightPath } from './animation';
@@ -16,8 +16,9 @@ import { Emitter } from './events';
 import { Interaction, type Animator, type InteractionHost } from './interaction';
 import { atmosphereLayer, graticuleLayer, limbShadeLayer, oceanLayer } from './layers/base';
 import { CountriesLayer } from './layers/countries';
-import { CountryLabelsLayer } from './layers/labels';
-import { Renderer, type Layer, type RenderState } from './renderer';
+import { LabelsLayer } from './layers/labels';
+import { Renderer, type HitResult, type Layer, type RenderState } from './renderer';
+import type { LabelProvider } from './layers/labels';
 
 export interface GlobeOptions {
   homeCountry: CountryId;
@@ -28,7 +29,10 @@ export interface GlobeOptions {
 }
 
 export interface GlobePointerEvent {
+  /** Country under the pointer (polygon or small-country marker). */
   id: CountryId | null;
+  /** Topmost feature under the pointer from any layer (e.g. a city dot above a country). */
+  hit: HitResult | null;
   lonLat: LonLat | null;
   /** CSS px relative to the container. */
   x: number;
@@ -68,6 +72,7 @@ const FPS_GAP_MS = 100;
 export class Globe {
   private readonly canvas: HTMLCanvasElement;
   private readonly renderer: Renderer;
+  private readonly labels: LabelsLayer;
   private readonly interaction: Interaction;
   private readonly events = new Emitter<GlobeEvents>();
   private readonly options: GlobeOptions;
@@ -76,7 +81,7 @@ export class Globe {
   private camera: Camera;
   private viewport: Viewport = { width: 1, height: 1 };
   private dpr = 1;
-  private hovered: CountryId | null = null;
+  private hovered: HitResult | null = null;
   private selected: CountryId | null = null;
   private highlights = new Map<CountryId, HighlightStyle>();
   private labelMode: LabelMode;
@@ -116,7 +121,8 @@ export class Globe {
     for (const layer of [atmosphereLayer, oceanLayer, graticuleLayer, countries, limbShadeLayer]) {
       this.renderer.addLayer(layer);
     }
-    this.renderer.addLayer(new CountryLabelsLayer(countries));
+    this.labels = new LabelsLayer(countries);
+    this.renderer.addLayer(this.labels);
 
     this.measure();
     this.camera = this.options.initialCamera ? clampCamera(this.options.initialCamera) : this.homeCamera();
@@ -170,12 +176,11 @@ export class Globe {
    */
   flyToCountry(
     id: CountryId,
-    opts: { duration?: number; anchor?: LonLat; maxZoom?: number; fill?: number } = {},
+    opts: { duration?: number; anchor?: LonLat; maxZoom?: number; minZoom?: number; fill?: number } = {},
   ): Promise<void> {
     const f = this.data.lods.high.byId.get(id);
     if (!f) return Promise.resolve();
-    const fit = fitCamera(mainParts(f), this.viewport, { fill: opts.fill ?? 0.7, centre: opts.anchor });
-    return this.flyTo({ ...fit, zoom: Math.min(fit.zoom, opts.maxZoom ?? Infinity) }, { duration: opts.duration });
+    return this.flyToFit(mainParts(f), { ...opts, fill: opts.fill ?? 0.7, centre: opts.anchor });
   }
 
   /** The home view: home country plus its land neighbours, with some context. */
@@ -263,11 +268,35 @@ export class Globe {
     this.invalidate();
   }
 
-  /** Country under a container-relative point (markers first). */
+  /** Country under a container-relative point (markers first), ignoring other layers. */
   hitTest(x: number, y: number): CountryId | null {
     const state = this.prepared ?? this.prepare(this.chooseLod());
-    const hit = this.renderer.hitTest(x, y, this.projection, state);
-    return hit?.layer === 'countries' ? hit.id : null;
+    return this.renderer.hitTestLayer('countries', x, y, this.projection, state)?.id ?? null;
+  }
+
+  /** Topmost feature (any layer) under a container-relative point. */
+  hitTestTop(x: number, y: number): HitResult | null {
+    const state = this.prepared ?? this.prepare(this.chooseLod());
+    return this.renderer.hitTest(x, y, this.projection, state);
+  }
+
+  /** Add labels from another layer (e.g. cities) to the shared collision-avoiding placement. */
+  addLabelProvider(provider: LabelProvider): void {
+    this.labels.addProvider(provider);
+    this.invalidate();
+  }
+
+  /**
+   * Fly to frame any geometry (e.g. a city and a click). `centre` keeps that point
+   * in the middle; zoom is clamped to [minZoom, maxZoom].
+   */
+  flyToFit(
+    geom: GeoPermissibleObjects,
+    opts: { centre?: LonLat; fill?: number; minZoom?: number; maxZoom?: number; duration?: number } = {},
+  ): Promise<void> {
+    const fit = fitCamera(geom, this.viewport, { fill: opts.fill ?? 0.7, centre: opts.centre });
+    const zoom = Math.max(opts.minZoom ?? 0, Math.min(fit.zoom, opts.maxZoom ?? Infinity));
+    return this.flyTo({ ...fit, zoom }, { duration: opts.duration });
   }
 
   destroy(): void {
@@ -296,14 +325,14 @@ export class Globe {
       zoomBy: (factor) => void this.flyTo({ zoom: this.camera.zoom * factor }, { duration: 250 }),
       pointerHover: (x, y) => {
         this.lastPointer = { x, y };
-        if (!this.interaction.dragging) this.setHovered(this.hitTest(x, y), { x, y });
+        if (!this.interaction.dragging) this.setHovered(this.hitTestTop(x, y), { x, y });
       },
       pointerLeave: () => {
         this.lastPointer = null;
         this.setHovered(null, null);
       },
       pointerTap: (x, y, kind) => {
-        this.events.emit(kind, this.pointerEvent(this.hitTest(x, y), x, y));
+        this.events.emit(kind, this.pointerEvent(this.hitTestTop(x, y), x, y));
       },
       dragStateChanged: (dragging) => {
         if (dragging) this.setHovered(null, null);
@@ -312,18 +341,19 @@ export class Globe {
     };
   }
 
-  private pointerEvent(id: CountryId | null, x: number, y: number): GlobePointerEvent {
-    return { id, x, y, lonLat: screenToLonLat(this.camera, this.viewport, x, y) };
+  private pointerEvent(hit: HitResult | null, x: number, y: number): GlobePointerEvent {
+    const id = hit?.layer === 'countries' ? hit.id : hit ? this.hitTest(x, y) : null;
+    return { id, hit, x, y, lonLat: screenToLonLat(this.camera, this.viewport, x, y) };
   }
 
-  private setHovered(id: CountryId | null, at: { x: number; y: number } | null): void {
-    const changed = id !== this.hovered;
-    this.hovered = id;
+  private setHovered(hit: HitResult | null, at: { x: number; y: number } | null): void {
+    const changed = hit?.layer !== this.hovered?.layer || hit?.id !== this.hovered?.id;
+    this.hovered = hit;
     if (changed) {
-      this.canvas.style.cursor = id ? 'pointer' : '';
+      this.canvas.style.cursor = hit ? 'pointer' : '';
       this.invalidate();
     }
-    if (changed || id) this.events.emit('hover', this.pointerEvent(id, at?.x ?? 0, at?.y ?? 0));
+    if (changed || hit) this.events.emit('hover', this.pointerEvent(hit, at?.x ?? 0, at?.y ?? 0));
   }
 
   private applyCamera(cam: Camera): void {
@@ -396,7 +426,8 @@ export class Globe {
       dpr: this.dpr,
       lod,
       data: this.data,
-      hovered: this.hovered,
+      hovered: this.hovered?.layer === 'countries' ? this.hovered.id : null,
+      hoveredHit: this.hovered,
       selected: this.selected,
       highlights: this.highlights,
       labelMode: this.labelMode,
@@ -429,7 +460,7 @@ export class Globe {
         fps: span > 0 ? ((n - 1) * 1000) / span : 0,
         lod,
         camera: this.getCamera(),
-        hovered: this.hovered,
+        hovered: this.hovered ? `${this.hovered.layer}:${this.hovered.id}` : null,
         selected: this.selected,
         layers: this.renderer.stats(),
         layerMs: Object.fromEntries(this.renderer.timings),
@@ -446,7 +477,7 @@ export class Globe {
       // The globe may have moved under a stationary cursor.
       if (this.lastPointer && this.interactive) {
         const { x, y } = this.lastPointer;
-        this.setHovered(this.hitTest(x, y), { x, y });
+        this.setHovered(this.hitTestTop(x, y), { x, y });
       }
     }, Math.max(0, wait));
   }

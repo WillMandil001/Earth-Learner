@@ -12,7 +12,10 @@ export interface RenderState {
   readonly dpr: number;
   readonly lod: Lod;
   readonly data: CountryData;
+  /** Country under the pointer (null if the pointer is over another layer's feature). */
   readonly hovered: CountryId | null;
+  /** Topmost feature under the pointer, from any layer. */
+  readonly hoveredHit: HitResult | null;
   readonly selected: CountryId | null;
   readonly highlights: ReadonlyMap<CountryId, HighlightStyle>;
   readonly labelMode: LabelMode;
@@ -77,6 +80,11 @@ export class Renderer {
       ctx.restore();
       this.timings.set(l.id, (this.timings.get(l.id) ?? 0) + performance.now() - t0);
     }
+  }
+
+  /** Hit-test a single layer. */
+  hitTestLayer(id: string, x: number, y: number, projection: GeoProjection, state: RenderState): HitResult | null {
+    return this.layers.find((l) => l.id === id)?.hitTest?.(x, y, projection, state) ?? null;
   }
 
   /** Topmost layer hit wins. */

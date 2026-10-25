@@ -763,3 +763,32 @@ button:disabled {
 .layer-breakdown {
   font-size: 13px;
 }
+
+.layers-panel {
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  font-size: 14px;
+}
+
+.layers-panel h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.layers-panel label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}

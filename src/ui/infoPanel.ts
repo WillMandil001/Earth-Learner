@@ -1,6 +1,6 @@
 import type { CountryId, CountryMeta } from '../types';
 
-/** Right-hand overlay describing the selected country. */
+/** Right-hand overlay describing the selected country or city. */
 export class InfoPanel {
   private readonly el: HTMLElement;
 
@@ -54,6 +54,29 @@ export class InfoPanel {
     this.el.append(close, el('h2', '', m.name), dl, el('h3', '', 'Neighbours'), list);
     this.el.hidden = false;
   }
+
+  /** Describe a city: name, country (clickable), tier and population. */
+  showCity(city: { name: string; countryId: CountryId; tier: string; population: number }): void {
+    const country = this.meta.get(city.countryId);
+    this.el.replaceChildren();
+    const close = el('button', 'info-close', '×');
+    close.setAttribute('aria-label', 'Close');
+    const dl = el('dl');
+    const row = (k: string, v: string | HTMLElement) => dl.append(el('dt', '', k), typeof v === 'string' ? el('dd', '', v) : wrap(v));
+    const link = el('button', 'chip', country?.name ?? city.countryId);
+    link.dataset.country = city.countryId;
+    row('Country', link);
+    row('Type', city.tier === 'capital' ? 'Capital city' : city.tier === 'major' ? 'Major city' : 'City');
+    row('Population', city.population.toLocaleString());
+    this.el.append(close, el('h2', '', city.name), dl);
+    this.el.hidden = false;
+  }
+}
+
+function wrap(child: HTMLElement): HTMLElement {
+  const dd = el('dd');
+  dd.append(child);
+  return dd;
 }
 
 const SOVEREIGN_TYPES = new Set(['Sovereign country', 'Country', 'Sovereignty']);
