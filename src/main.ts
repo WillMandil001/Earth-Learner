@@ -53,6 +53,8 @@ async function main(): Promise<void> {
   const markers = new MapMarkers(stage, globe);
   globe.addLayer(cityLayer.render, { before: 'limbShade' });
   globe.addLabelProvider(cityLayer.render);
+  // While a small country is drawn as a marker, the marker stands for it: hide its city dots.
+  cityLayer.render.skipCountries = () => globe.countryMarkers();
   const syncCities = () => {
     cityLayer.render.setCities(cityLayer.renderCities(settings.value));
     globe.redraw();

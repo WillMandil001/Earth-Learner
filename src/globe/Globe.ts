@@ -73,6 +73,7 @@ export class Globe {
   private readonly canvas: HTMLCanvasElement;
   private readonly renderer: Renderer;
   private readonly labels: LabelsLayer;
+  private readonly countriesLayer: CountriesLayer;
   private readonly interaction: Interaction;
   private readonly events = new Emitter<GlobeEvents>();
   private readonly options: GlobeOptions;
@@ -118,6 +119,7 @@ export class Globe {
 
     this.renderer = new Renderer(ctx);
     const countries = new CountriesLayer();
+    this.countriesLayer = countries;
     for (const layer of [atmosphereLayer, oceanLayer, graticuleLayer, countries, limbShadeLayer]) {
       this.renderer.addLayer(layer);
     }
@@ -261,6 +263,11 @@ export class Globe {
     if (geoDistance([this.camera.lon, this.camera.lat], lonLat) > Math.PI / 2) return null;
     const p = updateProjection(this.projection, this.camera, this.viewport)(lonLat);
     return p ? [p[0], p[1]] : null;
+  }
+
+  /** Countries currently drawn as small-country markers (fully visible), from the last prepared frame. */
+  countryMarkers(): ReadonlySet<CountryId> {
+    return new Set(this.countriesLayer.markers.filter((m) => m.alpha > 0.5).map((m) => m.id));
   }
 
   /** Redraw after an added layer's own state changed. */

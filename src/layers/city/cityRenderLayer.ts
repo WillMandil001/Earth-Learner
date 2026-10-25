@@ -31,6 +31,8 @@ export class CityRenderLayer implements Layer, LabelProvider {
   visible = true;
   mode: CityRenderMode = 'explore';
   selected: string | null = null;
+  /** Countries whose cities are left out this frame (e.g. those drawn as small-country markers). Called once per frame. */
+  skipCountries: (() => ReadonlySet<string>) | null = null;
   private cities: RenderCity[] = [];
   private shown: { c: RenderCity; x: number; y: number }[] = [];
 
@@ -44,7 +46,9 @@ export class CityRenderLayer implements Layer, LabelProvider {
     if (!this.visible || this.mode === 'hidden') return;
     const centre: LonLat = [state.camera.lon, state.camera.lat];
     const { width, height } = state.viewport;
+    const skip = this.skipCountries?.();
     for (const c of this.cities) {
+      if (skip?.has(c.rec.c)) continue;
       const minZoom = TIER_MIN_ZOOM[c.tier] / (c.home ? HOME_ZOOM_FACTOR : 1);
       if (state.camera.zoom < minZoom) continue;
       const ll: LonLat = [c.rec.lon, c.rec.lat];
@@ -91,7 +95,7 @@ export class CityRenderLayer implements Layer, LabelProvider {
         best = s.c.rec.i;
       }
     }
-    return best ? { layer: this.id, id: best } : null;
+    return best ? { layer: this.id, id: best, distancePx: bestD } : null;
   }
 
   labelCandidates(_projection: GeoProjection, state: RenderState, measure: (text: string, weight: 400 | 600) => number): LabelCandidate[] {

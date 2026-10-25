@@ -3,9 +3,13 @@
 A fast, local, canvas-rendered 3D-looking globe for learning world geography.
 
 - **Explore** (Phase 1): spin, zoom, hover and click countries.
-- **Learn** (Phase 2): spaced-repetition questions about the 197 sovereign states, introduced outward from
-  your home country. "Find it" (click the country) and "Name it" (type the highlighted country's name),
-  scheduled with FSRS. Progress is stored locally in IndexedDB.
+- **Learn**: spaced-repetition questions, introduced outward from your home country and scheduled with
+  FSRS. Progress is stored locally in IndexedDB. Two learn layers:
+  - **Countries**: the 197 sovereign states. "Find it" (click the country) and "Name it" (type the
+    highlighted country's name).
+  - **Cities** (Phase 3): capitals and major cities. Find it, Name it (a pulsing marker), and an
+    optional "Capital of …?".
+  A session mixes all enabled layers, or one layer via the filter on the Learn start screen.
 
 ## Run
 
@@ -40,12 +44,21 @@ click to select, double-click to fly to a country. Keys: arrows rotate, `+`/`-` 
 | `public/data/countries-meta.json` | One record per country: names, type, continent/region, label point, label rank, colour, population, land neighbours (`topojson.neighbors` on 50m), `geoBounds` bbox, bounding cap, spherical area. |
 
 | `public/data/quiz-data.json` | Quiz scopes (`sovereign`: 193 UN members + Vatican, Palestine, Taiwan, Kosovo), scoring merges, and display name + accepted answers per country. |
+| `public/data/cities.json` | NE 10m populated places in quiz countries with population ≥ 100,000, plus every capital and each country's largest place (3,113 cities), with accepted names and the curated capitals. Short keys: `i` id, `n` name, `c` country, `p` population, `r` NE SCALERANK, `a` extra names. |
 | `public/data/country-distances.json` | Border-to-border great-circle distance (km) between every pair of features, on the 110m-with-additions geometry. Neighbours and enclaves are 0. Stored as the upper triangle in sorted-ID order. |
 
 Hand-maintained sources live in `data-src/`:
 - `scope-sovereign.json`: the quiz items. The build fails unless each maps to exactly one feature.
 - `scoring-merges.json`: non-items that count as their parent when clicked (Somaliland → Somalia, …).
 - `country-aliases.json`: display names and alternative answers.
+- `capitals.json`: one capital per country (`city` ID), `alsoAccept` answers for "Capital of", a `note`,
+  and `flagged` for multiple, disputed or ambiguous capitals.
+- `city-aliases.json`: exonyms, native and old names per city. `reject` drops wrong or garbled NE
+  names; `display` overrides the shown name.
+- `extra-cities.json`: places NE lacks (Yaren, Nauru).
+
+City tiers (capital / major / extended) are computed at runtime by `src/layers/city/tiers.ts` from
+settings and the home country; the build script imports the same file for its stats.
 
 Natural Earth label points that fall outside their country (e.g. New Zealand's) are replaced by the
 pole of inaccessibility of the largest polygon (`polylabel`).
@@ -54,11 +67,38 @@ The country ID is `ADM0_A3` (`ISO_A3` is `-99` for France, Norway, …). `MAPCOL
 neighbour graph and corrected where neighbours clash (`colorIndex`). The generated files are checked in, so
 the app runs without re-running the script.
 
+## Learn layers
+
+Everything specific to a kind of feature lives behind `LearnLayer` (`src/learn/layer.ts`). The queue,
+scheduler, controller and storage are layer-agnostic. A new layer (rivers, lakes…) provides:
+
+| Member | Purpose |
+| --- | --- |
+| `id`, `name`, `noun`, `directions` | Identity; every direction it can ask (`locate`, `name`, extras like `capitalOf`). |
+| `displayName`, `countryOf`, `enabled(settings)` | Names for prompts; owning country; whether it is turned on. |
+| `queueConfig(ctx)` | Items in introduction order, active directions per item (first = introduced first), `eligibleNew` prerequisites (may read other layers' cards), per-layer limits. |
+| `grading(direction, settings)` | Time thresholds and typo tolerance. |
+| `question(item, direction, settings)` | Prompt text, chip, and whether the answer is a click or typed. |
+| `evaluateClick` / `evaluateTyped` | Correctness, typo, optional grade cap, what was clicked or matched, km off. |
+| `revealDetail` | Text explaining the answer. |
+| `presentQuestion` / `presentReveal` / `clearPresentation` | Globe effects: camera, highlights, pulse markers (`MapMarkers`), dot visibility. |
+
+Explore rendering is a Phase 1 render `Layer` registered with `globe.addLayer`. It can contribute labels
+to the shared collision-avoiding placement with `globe.addLabelProvider`. Point features return
+`distancePx` from `hitTest`, so dots and small-country markers compete by distance and beat areas.
+
+Card keys are `${layerId}:${itemId}:${direction}`; every direction of the same item is a sibling for burying.
+
 ## Learning model
 
-- A **card** is `(country, direction)`, with direction `locate` or `name`. A card with no stored state is new.
+- A **card** is `(layer, item, direction)`. A card with no stored state is new.
 - **FSRS** via `ts-fsrs`, wrapped in `src/srs/scheduler.ts` (nothing else imports it).
+- **Limits are per layer**: new per day, max reviews per day, pause-new threshold. New cards from different
+  layers are interleaved.
 - **New countries:** up to `newPerDay` per day, in order of distance from home (ties by LABELRANK).
+- **New cities** become eligible once their country's Find card has graduated to Review (or, if the
+  country layer isn't asking Find questions, once the country has been introduced). Order: capitals,
+  then major, then extended; within a tier by distance from the home country's border, then population.
   In `both` mode the locate card comes first and the name card the next day. Next-day siblings share
   the same daily allowance. New cards pause while more than `pauseNewIfDueAbove` reviews are due.
 - **Session queue** (`src/srs/queue.ts`, pure): learning steps that are due, then due reviews (lowest
@@ -78,13 +118,15 @@ the app runs without re-running the script.
 
 ## Persistence
 
-IndexedDB through `idb`, behind `src/storage/db.ts` (`Store` interface). Object stores:
+IndexedDB through `idb`, behind `src/storage/db.ts` (`Store` interface). Schema version 2 (Phase 3) rekeys
+cards by layer. The v1 → v2 migration (`src/storage/migrations.ts`) runs in the IndexedDB upgrade and on
+importing a v1 export file. Object stores:
 - `cards`: FSRS state and introduction day.
 - `reviewLog`: append-only; the ts-fsrs log plus direction, response time, raw answer, auto-grade and final grade.
 - `settings`.
-- `meta`: schema version and daily counters.
+- `meta`: schema version and per-layer daily counters.
 
-The schema version is 1, and migrations are listed in `MIGRATIONS`. Export/import (`src/storage/export.ts`)
+Migrations are listed in `MIGRATIONS`. Export/import (`src/storage/export.ts`)
 covers every store, and an import is fully validated before anything is written.
 
 ## Dev tooling
@@ -112,12 +154,15 @@ src/globe/hitTest.ts           pure hit-testing (markers first, then bbox + geoC
 src/globe/markers.ts           small-country markers
 src/globe/labels.ts            label priority, sizing, greedy collision placement
 src/globe/animation.ts         flyTo path and easing
+src/learn/layer.ts             LearnLayer interface (the template for new layers)
+src/layers/country/            country learn layer
+src/layers/city/               city data, tiers, learn layer, render layer
 src/quiz/                      quiz data, QuizController (state machine), globe binding, demo seed
 src/srs/                       scheduler (ts-fsrs wrapper), queue, grading, answer matching, clock
 src/settings/                  settings schema (types, defaults, validation, field specs) and store
 src/storage/                   IndexedDB store, export/import
-src/ui/                        info panel, tooltip, zoom controls, debug HUD, mode switch,
-                               quiz panel, start screen, session summary, settings panel
+src/ui/                        info panel, tooltip, zoom controls, debug HUD, mode switch, layers panel,
+                               quiz panel, start screen, session summary, settings panel, map markers
 data-src/                      hand-maintained quiz scope, merges, aliases
 tests/                         vitest
 ```
@@ -143,7 +188,7 @@ const globe = new Globe(container, await loadCountries(), { homeCountry: 'GBR', 
 globe.getCamera(): Camera                       // { lon, lat, zoom }
 globe.setCamera(partial)
 globe.flyTo(partial, { duration? }): Promise<void>
-globe.flyToCountry(id, { duration?, anchor?, maxZoom?, fill? }): Promise<void>
+globe.flyToCountry(id, { duration?, anchor?, minZoom?, maxZoom?, fill? }): Promise<void>
 globe.flyHome() / setHomeCountry(id)
 globe.homeCamera(): Camera
 globe.setHighlights({ FRA: 'target', DEU: 'dimmed' })   // styles: target | correct | wrong | dimmed
@@ -155,7 +200,10 @@ globe.hitTest(x, y): CountryId | null
 globe.on('hover' | 'click' | 'dblclick', e => …)  // { id, lonLat, x, y }; returns unsubscribe
 globe.on('cameraChange', camera => …)
 globe.on('render', stats => …)                    // debug: frame time, fps, LOD, layer stats
-globe.addLayer(layer, { before? }) / removeLayer(id)
+globe.addLayer(layer, { before? }) / removeLayer(id) / addLabelProvider(p)
+globe.hitTestTop(x, y): HitResult | null          // any layer; events also carry `hit`
+globe.flyToFit(geometry, { centre?, fill?, minZoom?, maxZoom? })
+globe.project(lonLat) / countryMarkers() / redraw()
 globe.destroy()
 ```
 

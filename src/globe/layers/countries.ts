@@ -4,7 +4,7 @@ import { COLORS, HIGHLIGHT_STYLES, PALETTE, SMALL_COUNTRY } from '../../config';
 import type { CountryFeature, CountryId, CountryMeta, LonLat, MeshChunk } from '../../types';
 import { mix } from '../color';
 import { FastOrtho } from '../fastOrtho';
-import { hitTestCountries, type Marker } from '../hitTest';
+import { hitTestCountries, hitTestMarkers, type Marker } from '../hitTest';
 import { computeMarkers } from '../markers';
 import type { Layer, RenderState } from '../renderer';
 
@@ -176,6 +176,11 @@ export class CountriesLayer implements Layer {
     const geo = projection.invert?.([x, y]) ?? null;
     const onGlobe =
       geo && Number.isFinite(geo[0]) && Math.hypot(x - state.viewport.width / 2, y - state.viewport.height / 2) <= state.radius;
+    const marker = hitTestMarkers(this.markers, x, y, SMALL_COUNTRY.hitRadius);
+    if (marker) {
+      const m = this.markers.find((k) => k.id === marker)!;
+      return { layer: this.id, id: marker, distancePx: Math.hypot(m.x - x, m.y - y) };
+    }
     // Always hit-test against 50m so the result does not depend on the current LOD.
     const id = hitTestCountries(
       [x, y],

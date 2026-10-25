@@ -22,7 +22,7 @@ export function renderSessionSummary(quiz: QuizController, stats: SessionStats, 
     h(
       'div',
       { class: 'actions' },
-      h('button', { class: 'primary', disabled: q.pausedNew, title: 'One extra batch of new countries', onclick: () => void quiz.learnMore() }, 'Learn more'),
+      h('button', { class: 'primary', disabled: q.pausedNew, title: 'One extra batch of new items per layer', onclick: () => void quiz.learnMore() }, 'Learn more'),
       h('button', { disabled: !q.ahead.length, title: 'Review cards before they are due', onclick: () => quiz.start('ahead') }, 'Review ahead'),
       h('button', { onclick: onExplore }, 'Back to explore'),
     ),

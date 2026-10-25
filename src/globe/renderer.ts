@@ -24,6 +24,8 @@ export interface RenderState {
 export interface HitResult {
   layer: string;
   id: string;
+  /** For point features (dots, markers): pixel distance from the pointer. Area hits leave it unset. */
+  distancePx?: number;
 }
 
 /**
@@ -87,13 +89,20 @@ export class Renderer {
     return this.layers.find((l) => l.id === id)?.hitTest?.(x, y, projection, state) ?? null;
   }
 
-  /** Topmost layer hit wins. */
+  /**
+   * Point features (city dots, small-country markers) beat areas, and among
+   * points the nearest to the pointer wins; otherwise the topmost area hit.
+   */
   hitTest(x: number, y: number, projection: GeoProjection, state: RenderState): HitResult | null {
+    let point: HitResult | null = null;
+    let area: HitResult | null = null;
     for (let i = this.layers.length - 1; i >= 0; i--) {
       const hit = this.layers[i]!.hitTest?.(x, y, projection, state);
-      if (hit) return hit;
+      if (!hit) continue;
+      if (hit.distancePx === undefined) area ??= hit;
+      else if (!point || hit.distancePx < point.distancePx!) point = hit;
     }
-    return null;
+    return point ?? area;
   }
 
   stats(): Record<string, number> {
