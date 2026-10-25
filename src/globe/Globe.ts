@@ -194,6 +194,10 @@ export class Globe {
     return clampCamera({ ...fit, zoom: fit.zoom * HOME_CONTEXT_FACTOR });
   }
 
+  setHomeCountry(id: CountryId): void {
+    this.options.homeCountry = id;
+  }
+
   flyHome(opts: { duration?: number } = {}): Promise<void> {
     return this.flyTo(this.homeCamera(), opts);
   }

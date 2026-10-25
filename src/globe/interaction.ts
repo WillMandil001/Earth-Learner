@@ -268,7 +268,7 @@ export class Interaction {
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (!this.host.isEnabled() || e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
     const cam = this.host.getCamera();
     const step = INTERACTION.keyRotateDegrees / cam.zoom;
     const pan: Record<string, [number, number]> = {

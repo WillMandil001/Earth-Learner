@@ -1,18 +1,62 @@
 import type { RenderStats } from '../globe/Globe';
+import type { CardDebugInfo } from '../quiz/QuizController';
+import { DAY, HOUR, clock } from '../srs/clock';
+import { h } from './dom';
 
 const UPDATE_MS = 200;
 
+interface HudOptions {
+  /** Current quiz card, if any. */
+  card(): CardDebugInfo | null;
+  /** Called after the clock is moved, so views depending on "now" can refresh. */
+  onTimeTravel(): void;
+}
+
 /** Top-right debug readout, toggled with D. Updates are throttled so the HUD itself costs ~nothing. */
 export class DebugHud {
-  private readonly el: HTMLPreElement;
+  private readonly el: HTMLElement;
+  private readonly text: HTMLPreElement;
+  private readonly clockLine: HTMLElement;
   private latest: RenderStats | null = null;
   private lastUpdate = 0;
   private timer = 0;
 
-  constructor(parent: HTMLElement, visible = false) {
-    this.el = document.createElement('pre');
-    this.el.className = 'debug-hud';
-    this.el.hidden = !visible;
+  constructor(
+    parent: HTMLElement,
+    private readonly opts: HudOptions,
+    visible = false,
+  ) {
+    this.text = h('pre', {});
+    this.clockLine = h('div', { class: 'hud-clock' });
+    const travel = (ms: number) => () => {
+      clock.advance(ms);
+      this.paint();
+      opts.onTimeTravel();
+    };
+    this.el = h(
+      'div',
+      { class: 'debug-hud', hidden: !visible },
+      this.text,
+      this.clockLine,
+      h(
+        'div',
+        { class: 'hud-buttons' },
+        h('button', { onclick: travel(HOUR) }, '+1h'),
+        h('button', { onclick: travel(DAY) }, '+1d'),
+        h('button', { onclick: travel(7 * DAY) }, '+7d'),
+        h(
+          'button',
+          {
+            onclick: () => {
+              clock.reset();
+              this.paint();
+              opts.onTimeTravel();
+            },
+          },
+          'Reset clock',
+        ),
+      ),
+    );
     parent.appendChild(this.el);
   }
 
@@ -31,12 +75,13 @@ export class DebugHud {
     else this.timer = window.setTimeout(() => this.paint(), UPDATE_MS);
   }
 
-  private paint(): void {
+  /** Repaint now (e.g. when the quiz card changes without a globe frame). */
+  paint(): void {
     const s = this.latest;
     if (!s || this.el.hidden) return;
     this.lastUpdate = performance.now();
     const c = s.camera;
-    this.el.textContent = [
+    const lines = [
       `fps      ${s.fps ? s.fps.toFixed(0) : 'idle'}`,
       `frame    ${s.frameMs.toFixed(1)} ms`,
       `layers   ${Object.entries(s.layerMs)
@@ -48,6 +93,18 @@ export class DebugHud {
       `hovered  ${s.hovered ?? '–'}`,
       `selected ${s.selected ?? '–'}`,
       `visible  ${s.layers.visibleFeatures ?? 0}  markers ${s.layers.markers ?? 0}  labels ${s.layers.labels ?? 0}`,
-    ].join('\n');
+    ];
+    const card = this.opts.card();
+    if (card) {
+      lines.push(
+        `card     ${card.key}  ${card.state}`,
+        `         S ${card.stability.toFixed(2)}  D ${card.difficulty.toFixed(2)}  R ${(card.retrievability * 100).toFixed(0)}%`,
+        `         due ${card.due ? card.due.toLocaleString() : '–'}`,
+      );
+    }
+    this.text.textContent = lines.join('\n');
+    const offset = clock.offsetMs;
+    this.clockLine.textContent = `clock    ${clock.now().toLocaleString()}${offset ? `  (+${(offset / DAY).toFixed(2)}d)` : ''}`;
+    this.clockLine.classList.toggle('shifted', offset !== 0);
   }
 }

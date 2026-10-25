@@ -53,7 +53,7 @@ function parseCard(v: unknown, i: number): CardRecord {
   const parsed = { ...card, due: toDate(card.due, `${where}.card.due`) } as unknown as SrsCard;
   if (card.last_review != null) parsed.last_review = toDate(card.last_review, `${where}.card.last_review`);
   else delete parsed.last_review;
-  return { key, countryId, direction: direction as CardRecord['direction'], introducedDay, card: parsed };
+  return { key, countryId, direction: direction as CardRecord['direction'], card: parsed, introducedDay };
 }
 
 function parseLog(v: unknown, i: number): ReviewLogEntry {
