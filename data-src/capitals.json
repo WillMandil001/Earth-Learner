@@ -1,0 +1,1220 @@
+{
+ "description": "One capital per in-scope country: city ID (see cities.json), extra answers accepted for \"Capital of\" questions, and a note. flagged = multiple, disputed or ambiguous capitals, chosen by hand.",
+ "capitals": {
+  "AFG": {
+   "city": "afg-kabul",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "AGO": {
+   "city": "ago-luanda",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ALB": {
+   "city": "alb-tirana",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "AND": {
+   "city": "and-andorra-la-vella",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ARE": {
+   "city": "are-abu-dhabi",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ARG": {
+   "city": "arg-buenos-aires",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ARM": {
+   "city": "arm-yerevan",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ATG": {
+   "city": "atg-saint-john-s",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "AUS": {
+   "city": "aus-canberra",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "AUT": {
+   "city": "aut-vienna",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "AZE": {
+   "city": "aze-baku",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BDI": {
+   "city": "bdi-gitega",
+   "alsoAccept": [
+    "Bujumbura"
+   ],
+   "note": "Gitega has been the political capital since 2019; Bujumbura is the economic capital (and was the capital before).",
+   "flagged": true
+  },
+  "BEL": {
+   "city": "bel-brussels",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BEN": {
+   "city": "ben-porto-novo",
+   "alsoAccept": [
+    "Cotonou"
+   ],
+   "note": "Porto-Novo is the official capital; Cotonou is the seat of government.",
+   "flagged": true
+  },
+  "BFA": {
+   "city": "bfa-ouagadougou",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BGD": {
+   "city": "bgd-dhaka",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BGR": {
+   "city": "bgr-sofia",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BHR": {
+   "city": "bhr-manama",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BHS": {
+   "city": "bhs-nassau",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BIH": {
+   "city": "bih-sarajevo",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BLR": {
+   "city": "blr-minsk",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BLZ": {
+   "city": "blz-belmopan",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BOL": {
+   "city": "bol-sucre",
+   "alsoAccept": [
+    "La Paz"
+   ],
+   "note": "Sucre is the constitutional capital; La Paz is the seat of government. Both accepted for \"Capital of\".",
+   "flagged": true
+  },
+  "BRA": {
+   "city": "bra-brasilia",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BRB": {
+   "city": "brb-bridgetown",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BRN": {
+   "city": "brn-bandar-seri-begawan",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BTN": {
+   "city": "btn-thimphu",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "BWA": {
+   "city": "bwa-gaborone",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "CAF": {
+   "city": "caf-bangui",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "CAN": {
+   "city": "can-ottawa",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "CHE": {
+   "city": "che-bern",
+   "alsoAccept": [],
+   "note": "Switzerland has no de jure capital; Bern is the \"federal city\" and seat of government.",
+   "flagged": true
+  },
+  "CHL": {
+   "city": "chl-santiago",
+   "alsoAccept": [
+    "Valparaiso"
+   ],
+   "note": "Santiago is the capital; the National Congress sits in Valparaíso.",
+   "flagged": true
+  },
+  "CHN": {
+   "city": "chn-beijing",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "CIV": {
+   "city": "civ-yamoussoukro",
+   "alsoAccept": [
+    "Abidjan"
+   ],
+   "note": "Yamoussoukro is the official capital; Abidjan is the de facto seat of government.",
+   "flagged": true
+  },
+  "CMR": {
+   "city": "cmr-yaounde",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "COD": {
+   "city": "cod-kinshasa",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "COG": {
+   "city": "cog-brazzaville",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "COL": {
+   "city": "col-bogota",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "COM": {
+   "city": "com-moroni",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "CPV": {
+   "city": "cpv-praia",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "CRI": {
+   "city": "cri-san-jose",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "CUB": {
+   "city": "cub-havana",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "CYP": {
+   "city": "cyp-nicosia",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "CZE": {
+   "city": "cze-prague",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "DEU": {
+   "city": "deu-berlin",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "DJI": {
+   "city": "dji-djibouti",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "DMA": {
+   "city": "dma-roseau",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "DNK": {
+   "city": "dnk-copenhagen",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "DOM": {
+   "city": "dom-santo-domingo",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "DZA": {
+   "city": "dza-algiers",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ECU": {
+   "city": "ecu-quito",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "EGY": {
+   "city": "egy-cairo",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ERI": {
+   "city": "eri-asmara",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ESP": {
+   "city": "esp-madrid",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "EST": {
+   "city": "est-tallinn",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ETH": {
+   "city": "eth-addis-ababa",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "FIN": {
+   "city": "fin-helsinki",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "FJI": {
+   "city": "fji-suva",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "FRA": {
+   "city": "fra-paris",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "FSM": {
+   "city": "fsm-palikir",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GAB": {
+   "city": "gab-libreville",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GBR": {
+   "city": "gbr-london",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GEO": {
+   "city": "geo-tbilisi",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GHA": {
+   "city": "gha-accra",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GIN": {
+   "city": "gin-conakry",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GMB": {
+   "city": "gmb-banjul",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GNB": {
+   "city": "gnb-bissau",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GNQ": {
+   "city": "gnq-malabo",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GRC": {
+   "city": "grc-athens",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GRD": {
+   "city": "grd-st-george-s",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GTM": {
+   "city": "gtm-guatemala-city",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "GUY": {
+   "city": "guy-georgetown",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "HND": {
+   "city": "hnd-tegucigalpa",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "HRV": {
+   "city": "hrv-zagreb",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "HTI": {
+   "city": "hti-port-au-prince",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "HUN": {
+   "city": "hun-budapest",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "IDN": {
+   "city": "idn-jakarta",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "IND": {
+   "city": "ind-new-delhi",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "IRL": {
+   "city": "irl-dublin",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "IRN": {
+   "city": "irn-tehran",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "IRQ": {
+   "city": "irq-baghdad",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ISL": {
+   "city": "isl-reykjavik",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ISR": {
+   "city": "isr-jerusalem",
+   "alsoAccept": [],
+   "note": "Jerusalem is the proclaimed capital and seat of government; its status is internationally disputed and most embassies are in Tel Aviv (not accepted).",
+   "flagged": true
+  },
+  "ITA": {
+   "city": "ita-rome",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "JAM": {
+   "city": "jam-kingston",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "JOR": {
+   "city": "jor-amman",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "JPN": {
+   "city": "jpn-tokyo",
+   "alsoAccept": [],
+   "note": "Tokyo (Natural Earth also flags Kyoto, the historical capital; not accepted).",
+   "flagged": true
+  },
+  "KAZ": {
+   "city": "kaz-nur-sultan",
+   "alsoAccept": [
+    "Nur-Sultan"
+   ],
+   "note": "The capital was renamed from Nur-Sultan back to Astana in 2022; shown as Astana.",
+   "flagged": true
+  },
+  "KEN": {
+   "city": "ken-nairobi",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "KGZ": {
+   "city": "kgz-bishkek",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "KHM": {
+   "city": "khm-phnom-penh",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "KIR": {
+   "city": "kir-south-tarawa",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "KNA": {
+   "city": "kna-basseterre",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "KOR": {
+   "city": "kor-seoul",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "KOS": {
+   "city": "kos-pristina",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "KWT": {
+   "city": "kwt-kuwait-city",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LAO": {
+   "city": "lao-vientiane",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LBN": {
+   "city": "lbn-beirut",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LBR": {
+   "city": "lbr-monrovia",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LBY": {
+   "city": "lby-tripoli",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LCA": {
+   "city": "lca-castries",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LIE": {
+   "city": "lie-vaduz",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LKA": {
+   "city": "lka-sri-jayawardenepura-kotte",
+   "alsoAccept": [
+    "Colombo",
+    "Kotte"
+   ],
+   "note": "Sri Jayawardenepura Kotte is the legislative capital; Colombo is the executive and commercial capital.",
+   "flagged": true
+  },
+  "LSO": {
+   "city": "lso-maseru",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LTU": {
+   "city": "ltu-vilnius",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LUX": {
+   "city": "lux-luxembourg",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "LVA": {
+   "city": "lva-riga",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MAR": {
+   "city": "mar-rabat",
+   "alsoAccept": [],
+   "note": "Rabat (Natural Earth also flags Laayoune in disputed Western Sahara; not accepted).",
+   "flagged": true
+  },
+  "MCO": {
+   "city": "mco-monaco",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MDA": {
+   "city": "mda-chisinau",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MDG": {
+   "city": "mdg-antananarivo",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MDV": {
+   "city": "mdv-male",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MEX": {
+   "city": "mex-mexico-city",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MHL": {
+   "city": "mhl-majuro",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MKD": {
+   "city": "mkd-skopje",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MLI": {
+   "city": "mli-bamako",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MLT": {
+   "city": "mlt-valletta",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MMR": {
+   "city": "mmr-naypyidaw",
+   "alsoAccept": [],
+   "note": "Naypyidaw (Yangon was the capital until 2006; not accepted).",
+   "flagged": true
+  },
+  "MNE": {
+   "city": "mne-podgorica",
+   "alsoAccept": [
+    "Cetinje"
+   ],
+   "note": "Podgorica is the capital; Cetinje is the old royal capital with honorary status.",
+   "flagged": true
+  },
+  "MNG": {
+   "city": "mng-ulaanbaatar",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MOZ": {
+   "city": "moz-maputo",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MRT": {
+   "city": "mrt-nouakchott",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MUS": {
+   "city": "mus-port-louis",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MWI": {
+   "city": "mwi-lilongwe",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "MYS": {
+   "city": "mys-kuala-lumpur",
+   "alsoAccept": [
+    "Putrajaya"
+   ],
+   "note": "Kuala Lumpur is the official capital; Putrajaya is the administrative centre.",
+   "flagged": true
+  },
+  "NAM": {
+   "city": "nam-windhoek",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "NER": {
+   "city": "ner-niamey",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "NGA": {
+   "city": "nga-abuja",
+   "alsoAccept": [],
+   "note": "Abuja (Lagos was the capital until 1991; not accepted).",
+   "flagged": true
+  },
+  "NIC": {
+   "city": "nic-managua",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "NLD": {
+   "city": "nld-amsterdam",
+   "alsoAccept": [],
+   "note": "Amsterdam is the constitutional capital; The Hague is the seat of government but not the capital, so it is not accepted.",
+   "flagged": true
+  },
+  "NOR": {
+   "city": "nor-oslo",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "NPL": {
+   "city": "npl-kathmandu",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "NRU": {
+   "city": "nru-yaren",
+   "alsoAccept": [],
+   "note": "Nauru has no official capital; Yaren is the de facto seat of government (added manually).",
+   "flagged": true
+  },
+  "NZL": {
+   "city": "nzl-wellington",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "OMN": {
+   "city": "omn-muscat",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "PAK": {
+   "city": "pak-islamabad",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "PAN": {
+   "city": "pan-panama-city",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "PER": {
+   "city": "per-lima",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "PHL": {
+   "city": "phl-manila",
+   "alsoAccept": [],
+   "note": "Manila (Natural Earth also flags Baguio, the \"summer capital\"; not accepted).",
+   "flagged": true
+  },
+  "PLW": {
+   "city": "plw-melekeok",
+   "alsoAccept": [
+    "Ngerulmud"
+   ],
+   "note": "The capital Ngerulmud lies in Melekeok state; Natural Earth names the place Melekeok.",
+   "flagged": true
+  },
+  "PNG": {
+   "city": "png-port-moresby",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "POL": {
+   "city": "pol-warsaw",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "PRK": {
+   "city": "prk-pyongyang",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "PRT": {
+   "city": "prt-lisbon",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "PRY": {
+   "city": "pry-asuncion",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "PSX": {
+   "city": "psx-ramallah",
+   "alsoAccept": [
+    "East Jerusalem",
+    "Jerusalem"
+   ],
+   "note": "East Jerusalem is the proclaimed capital; Ramallah is the de facto administrative centre (used as the map point).",
+   "flagged": true
+  },
+  "QAT": {
+   "city": "qat-doha",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ROU": {
+   "city": "rou-bucharest",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "RUS": {
+   "city": "rus-moscow",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "RWA": {
+   "city": "rwa-kigali",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SAU": {
+   "city": "sau-riyadh",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SDN": {
+   "city": "sdn-khartoum",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SDS": {
+   "city": "sds-juba",
+   "alsoAccept": [],
+   "note": "Juba (Natural Earth codes South Sudan as SSD; mapped to SDS).",
+   "flagged": true
+  },
+  "SEN": {
+   "city": "sen-dakar",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SGP": {
+   "city": "sgp-singapore",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SLB": {
+   "city": "slb-honiara",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SLE": {
+   "city": "sle-freetown",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SLV": {
+   "city": "slv-san-salvador",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SMR": {
+   "city": "smr-san-marino",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SOM": {
+   "city": "som-mogadishu",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SRB": {
+   "city": "srb-belgrade",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "STP": {
+   "city": "stp-sao-tome",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SUR": {
+   "city": "sur-paramaribo",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SVK": {
+   "city": "svk-bratislava",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SVN": {
+   "city": "svn-ljubljana",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SWE": {
+   "city": "swe-stockholm",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SWZ": {
+   "city": "swz-mbabane",
+   "alsoAccept": [
+    "Lobamba"
+   ],
+   "note": "Mbabane is the executive capital; Lobamba is the royal and legislative capital.",
+   "flagged": true
+  },
+  "SYC": {
+   "city": "syc-victoria",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "SYR": {
+   "city": "syr-damascus",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TCD": {
+   "city": "tcd-n-djamena",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TGO": {
+   "city": "tgo-lome",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "THA": {
+   "city": "tha-bangkok",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TJK": {
+   "city": "tjk-dushanbe",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TKM": {
+   "city": "tkm-ashgabat",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TLS": {
+   "city": "tls-dili",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TON": {
+   "city": "ton-nuku-alofa",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TTO": {
+   "city": "tto-port-of-spain",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TUN": {
+   "city": "tun-tunis",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TUR": {
+   "city": "tur-ankara",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TUV": {
+   "city": "tuv-funafuti",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TWN": {
+   "city": "twn-taipei",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "TZA": {
+   "city": "tza-dodoma",
+   "alsoAccept": [
+    "Dar es Salaam"
+   ],
+   "note": "Dodoma is the official capital; Dar es Salaam is the former capital and main city, where much of government remains.",
+   "flagged": true
+  },
+  "UGA": {
+   "city": "uga-kampala",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "UKR": {
+   "city": "ukr-kyiv",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "URY": {
+   "city": "ury-montevideo",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "USA": {
+   "city": "usa-washington",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "UZB": {
+   "city": "uzb-tashkent",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "VAT": {
+   "city": "vat-vatican-city",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "VCT": {
+   "city": "vct-kingstown",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "VEN": {
+   "city": "ven-caracas",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "VNM": {
+   "city": "vnm-hanoi",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "VUT": {
+   "city": "vut-port-vila",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "WSM": {
+   "city": "wsm-apia",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "YEM": {
+   "city": "yem-sanaa",
+   "alsoAccept": [
+    "Aden"
+   ],
+   "note": "Sanaa is the constitutional capital (held by the Houthis); the recognised government operates from Aden.",
+   "flagged": true
+  },
+  "ZAF": {
+   "city": "zaf-pretoria",
+   "alsoAccept": [
+    "Cape Town",
+    "Bloemfontein"
+   ],
+   "note": "Three capitals: Pretoria (executive), Cape Town (legislative), Bloemfontein (judicial).",
+   "flagged": true
+  },
+  "ZMB": {
+   "city": "zmb-lusaka",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  },
+  "ZWE": {
+   "city": "zwe-harare",
+   "alsoAccept": [],
+   "note": "",
+   "flagged": false
+  }
+ }
+}

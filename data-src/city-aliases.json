@@ -1,0 +1,1989 @@
+{
+ "description": "Extra accepted answers per city (English exonyms, native names, old names, spelling variants), keyed by city ID from cities.json. Natural Earth's NAME, NAMEASCII, NAME_EN and NAMEALT are accepted automatically; 'reject' drops wrong or garbled Natural Earth names; 'display' overrides the shown name. Every capital and default major city has an entry.",
+ "cities": {
+  "afg-kabul": {
+   "aliases": []
+  },
+  "afg-kandahar": {
+   "aliases": [
+    "Qandahar"
+   ]
+  },
+  "ago-huambo": {
+   "aliases": []
+  },
+  "ago-luanda": {
+   "aliases": []
+  },
+  "alb-elbasan": {
+   "aliases": []
+  },
+  "alb-tirana": {
+   "aliases": [
+    "Tiranë",
+    "Tirane"
+   ]
+  },
+  "and-andorra-la-vella": {
+   "aliases": []
+  },
+  "are-abu-dhabi": {
+   "aliases": [
+    "Abu Zabi"
+   ]
+  },
+  "are-dubai": {
+   "aliases": []
+  },
+  "are-sharjah": {
+   "aliases": []
+  },
+  "arg-buenos-aires": {
+   "aliases": []
+  },
+  "arg-cordoba": {
+   "aliases": []
+  },
+  "arg-rosario": {
+   "aliases": []
+  },
+  "arm-gyumri": {
+   "aliases": []
+  },
+  "arm-yerevan": {
+   "aliases": [
+    "Erevan"
+   ]
+  },
+  "atg-saint-john-s": {
+   "aliases": [
+    "St. John's",
+    "St John's"
+   ]
+  },
+  "aus-adelaide": {
+   "aliases": []
+  },
+  "aus-brisbane": {
+   "aliases": []
+  },
+  "aus-canberra": {
+   "aliases": []
+  },
+  "aus-melbourne": {
+   "aliases": []
+  },
+  "aus-perth": {
+   "aliases": []
+  },
+  "aus-sydney": {
+   "aliases": []
+  },
+  "aut-graz": {
+   "aliases": []
+  },
+  "aut-linz": {
+   "aliases": []
+  },
+  "aut-vienna": {
+   "aliases": [
+    "Wien"
+   ]
+  },
+  "aze-baku": {
+   "aliases": [
+    "Baki",
+    "Bakı"
+   ]
+  },
+  "aze-ganja": {
+   "aliases": []
+  },
+  "bdi-bujumbura": {
+   "aliases": []
+  },
+  "bdi-gitega": {
+   "aliases": []
+  },
+  "bel-antwerp": {
+   "aliases": [
+    "Anvers"
+   ]
+  },
+  "bel-brussels": {
+   "aliases": [
+    "Bruxelles",
+    "Brussel"
+   ]
+  },
+  "bel-ghent": {
+   "aliases": [
+    "Gent",
+    "Gand"
+   ]
+  },
+  "ben-cotonou": {
+   "aliases": []
+  },
+  "ben-porto-novo": {
+   "aliases": []
+  },
+  "bfa-bobo-dioulasso": {
+   "aliases": []
+  },
+  "bfa-ouagadougou": {
+   "aliases": []
+  },
+  "bgd-chattogram": {
+   "aliases": [
+    "Chittagong"
+   ]
+  },
+  "bgd-dhaka": {
+   "aliases": [
+    "Dacca"
+   ]
+  },
+  "bgd-khulna": {
+   "aliases": []
+  },
+  "bgr-plovdiv": {
+   "aliases": []
+  },
+  "bgr-sofia": {
+   "aliases": [
+    "Sofiya"
+   ]
+  },
+  "bhr-manama": {
+   "aliases": []
+  },
+  "bhs-nassau": {
+   "aliases": []
+  },
+  "bih-banja-luka": {
+   "aliases": []
+  },
+  "bih-sarajevo": {
+   "aliases": []
+  },
+  "blr-gomel": {
+   "aliases": []
+  },
+  "blr-minsk": {
+   "aliases": []
+  },
+  "blz-belize-city": {
+   "aliases": []
+  },
+  "blz-belmopan": {
+   "aliases": []
+  },
+  "bol-cochabamba": {
+   "aliases": []
+  },
+  "bol-la-paz": {
+   "aliases": []
+  },
+  "bol-santa-cruz-de-la-sierra": {
+   "aliases": []
+  },
+  "bol-sucre": {
+   "aliases": []
+  },
+  "bra-belo-horizonte": {
+   "aliases": []
+  },
+  "bra-brasilia": {
+   "aliases": []
+  },
+  "bra-curitiba": {
+   "aliases": []
+  },
+  "bra-fortaleza": {
+   "aliases": []
+  },
+  "bra-porto-alegre": {
+   "aliases": []
+  },
+  "bra-recife": {
+   "aliases": []
+  },
+  "bra-rio-de-janeiro": {
+   "aliases": []
+  },
+  "bra-salvador": {
+   "aliases": []
+  },
+  "bra-sao-paulo": {
+   "aliases": [],
+   "reject": [
+    "Sio Paulo"
+   ]
+  },
+  "brb-bridgetown": {
+   "aliases": []
+  },
+  "brn-bandar-seri-begawan": {
+   "aliases": []
+  },
+  "btn-thimphu": {
+   "aliases": []
+  },
+  "bwa-gaborone": {
+   "aliases": []
+  },
+  "caf-bangui": {
+   "aliases": []
+  },
+  "can-calgary": {
+   "aliases": []
+  },
+  "can-edmonton": {
+   "aliases": []
+  },
+  "can-montreal": {
+   "aliases": [
+    "Montréal"
+   ]
+  },
+  "can-ottawa": {
+   "aliases": []
+  },
+  "can-toronto": {
+   "aliases": []
+  },
+  "can-vancouver": {
+   "aliases": []
+  },
+  "che-basel": {
+   "aliases": [
+    "Basle",
+    "Bâle"
+   ]
+  },
+  "che-bern": {
+   "aliases": [
+    "Berne"
+   ]
+  },
+  "che-geneva": {
+   "aliases": [
+    "Genève",
+    "Genf",
+    "Ginevra"
+   ]
+  },
+  "che-zurich": {
+   "aliases": []
+  },
+  "chl-concepcion": {
+   "aliases": []
+  },
+  "chl-santiago": {
+   "aliases": []
+  },
+  "chn-beijing": {
+   "aliases": [
+    "Peking",
+    "Peiping"
+   ]
+  },
+  "chn-chongqing": {
+   "aliases": [
+    "Chungking"
+   ]
+  },
+  "chn-guangzhou": {
+   "aliases": [
+    "Canton"
+   ],
+   "reject": [
+    "Dongguan, Guangdong"
+   ]
+  },
+  "chn-hong-kong": {
+   "aliases": [
+    "Xianggang"
+   ]
+  },
+  "chn-nanjing": {
+   "aliases": [
+    "Nanking"
+   ]
+  },
+  "chn-shanghai": {
+   "aliases": []
+  },
+  "chn-shenyang": {
+   "aliases": [
+    "Mukden"
+   ]
+  },
+  "chn-shenzhen": {
+   "aliases": []
+  },
+  "chn-tianjin": {
+   "aliases": [
+    "Tientsin"
+   ]
+  },
+  "chn-wuhan": {
+   "aliases": []
+  },
+  "chn-xi-an": {
+   "aliases": [
+    "Xian",
+    "Sian"
+   ]
+  },
+  "civ-abidjan": {
+   "aliases": []
+  },
+  "civ-yamoussoukro": {
+   "aliases": []
+  },
+  "cmr-douala": {
+   "aliases": []
+  },
+  "cmr-yaounde": {
+   "aliases": []
+  },
+  "cod-kinshasa": {
+   "aliases": [
+    "Léopoldville",
+    "Leopoldville"
+   ]
+  },
+  "cod-lubumbashi": {
+   "aliases": [
+    "Élisabethville",
+    "Elisabethville"
+   ]
+  },
+  "cod-mbuji-mayi": {
+   "aliases": []
+  },
+  "cog-brazzaville": {
+   "aliases": []
+  },
+  "cog-pointe-noire": {
+   "aliases": []
+  },
+  "col-barranquilla": {
+   "aliases": []
+  },
+  "col-bogota": {
+   "aliases": [
+    "Santa Fe de Bogotá"
+   ]
+  },
+  "col-bucaramanga": {
+   "aliases": []
+  },
+  "col-cali": {
+   "aliases": []
+  },
+  "col-medellin": {
+   "aliases": []
+  },
+  "com-moroni": {
+   "aliases": []
+  },
+  "cpv-praia": {
+   "aliases": []
+  },
+  "cri-alajuela": {
+   "aliases": []
+  },
+  "cri-san-jose": {
+   "aliases": []
+  },
+  "cub-havana": {
+   "aliases": [
+    "La Habana"
+   ]
+  },
+  "cub-santiago-de-cuba": {
+   "aliases": []
+  },
+  "cyp-limassol": {
+   "aliases": []
+  },
+  "cyp-nicosia": {
+   "aliases": [
+    "Lefkosia",
+    "Lefkoşa"
+   ]
+  },
+  "cze-ostrava": {
+   "aliases": []
+  },
+  "cze-prague": {
+   "aliases": [
+    "Praha",
+    "Prag"
+   ]
+  },
+  "deu-berlin": {
+   "aliases": []
+  },
+  "deu-cologne": {
+   "aliases": [
+    "Köln",
+    "Koeln"
+   ]
+  },
+  "deu-duisburg": {
+   "aliases": []
+  },
+  "deu-dusseldorf": {
+   "aliases": []
+  },
+  "deu-essen": {
+   "aliases": []
+  },
+  "deu-frankfurt": {
+   "aliases": []
+  },
+  "deu-hamburg": {
+   "aliases": []
+  },
+  "deu-hanover": {
+   "aliases": [
+    "Hannover"
+   ]
+  },
+  "deu-mannheim": {
+   "aliases": []
+  },
+  "deu-munich": {
+   "aliases": [
+    "München",
+    "Muenchen"
+   ]
+  },
+  "deu-nuremberg": {
+   "aliases": [
+    "Nürnberg",
+    "Nuernberg"
+   ]
+  },
+  "deu-stuttgart": {
+   "aliases": []
+  },
+  "dji-djibouti": {
+   "aliases": []
+  },
+  "dma-roseau": {
+   "aliases": []
+  },
+  "dnk-aarhus": {
+   "aliases": [
+    "Århus"
+   ]
+  },
+  "dnk-copenhagen": {
+   "aliases": [
+    "Kjøbenhavn"
+   ]
+  },
+  "dom-santiago-de-los-caballeros": {
+   "aliases": []
+  },
+  "dom-santo-domingo": {
+   "aliases": []
+  },
+  "dza-algiers": {
+   "aliases": [
+    "Alger",
+    "El Djazair",
+    "Al-Jazair"
+   ],
+   "reject": [
+    "El Djazacr"
+   ]
+  },
+  "dza-oran": {
+   "aliases": []
+  },
+  "ecu-guayaquil": {
+   "aliases": []
+  },
+  "ecu-quito": {
+   "aliases": []
+  },
+  "egy-alexandria": {
+   "aliases": []
+  },
+  "egy-cairo": {
+   "aliases": [
+    "Al-Qahira"
+   ]
+  },
+  "egy-giza": {
+   "aliases": []
+  },
+  "eri-asmara": {
+   "aliases": []
+  },
+  "eri-mendefera": {
+   "aliases": []
+  },
+  "esp-barcelona": {
+   "aliases": []
+  },
+  "esp-madrid": {
+   "aliases": []
+  },
+  "esp-malaga": {
+   "aliases": [
+    "Málaga"
+   ]
+  },
+  "esp-seville": {
+   "aliases": [
+    "Sevilla"
+   ]
+  },
+  "esp-valencia": {
+   "aliases": [
+    "València"
+   ]
+  },
+  "est-tallinn": {
+   "aliases": []
+  },
+  "est-tartu": {
+   "aliases": []
+  },
+  "eth-adama": {
+   "aliases": []
+  },
+  "eth-addis-ababa": {
+   "aliases": [
+    "Addis Abeba"
+   ]
+  },
+  "fin-helsinki": {
+   "aliases": [
+    "Helsingfors"
+   ]
+  },
+  "fin-tampere": {
+   "aliases": []
+  },
+  "fin-turku": {
+   "aliases": [
+    "Åbo"
+   ]
+  },
+  "fji-suva": {
+   "aliases": []
+  },
+  "fra-lille": {
+   "aliases": []
+  },
+  "fra-lyon": {
+   "aliases": [
+    "Lyons"
+   ]
+  },
+  "fra-marseille": {
+   "aliases": [
+    "Marseilles"
+   ]
+  },
+  "fra-paris": {
+   "aliases": []
+  },
+  "fsm-palikir": {
+   "aliases": []
+  },
+  "gab-libreville": {
+   "aliases": []
+  },
+  "gab-port-gentil": {
+   "aliases": []
+  },
+  "gbr-belfast": {
+   "aliases": []
+  },
+  "gbr-birmingham": {
+   "aliases": []
+  },
+  "gbr-bournemouth": {
+   "aliases": []
+  },
+  "gbr-bradford": {
+   "aliases": []
+  },
+  "gbr-brighton": {
+   "aliases": [
+    "Brighton and Hove",
+    "Brighton & Hove"
+   ]
+  },
+  "gbr-bristol": {
+   "aliases": []
+  },
+  "gbr-cardiff": {
+   "aliases": [
+    "Caerdydd"
+   ]
+  },
+  "gbr-coventry": {
+   "aliases": []
+  },
+  "gbr-edinburgh": {
+   "aliases": [
+    "Dùn Èideann"
+   ]
+  },
+  "gbr-glasgow": {
+   "aliases": []
+  },
+  "gbr-kingston-upon-hull": {
+   "aliases": [
+    "Hull"
+   ]
+  },
+  "gbr-leeds": {
+   "aliases": [],
+   "reject": [
+    "West Yorkshire"
+   ]
+  },
+  "gbr-leicester": {
+   "aliases": []
+  },
+  "gbr-liverpool": {
+   "aliases": []
+  },
+  "gbr-london": {
+   "aliases": []
+  },
+  "gbr-manchester": {
+   "aliases": []
+  },
+  "gbr-middlesbrough": {
+   "aliases": []
+  },
+  "gbr-newcastle-upon-tyne": {
+   "aliases": []
+  },
+  "gbr-nottingham": {
+   "aliases": []
+  },
+  "gbr-portsmouth": {
+   "aliases": []
+  },
+  "gbr-reading": {
+   "aliases": []
+  },
+  "gbr-sheffield": {
+   "aliases": []
+  },
+  "gbr-southampton": {
+   "aliases": []
+  },
+  "gbr-southend-on-sea": {
+   "aliases": []
+  },
+  "gbr-stoke-on-trent": {
+   "aliases": []
+  },
+  "gbr-sunderland": {
+   "aliases": []
+  },
+  "geo-kutaisi": {
+   "aliases": []
+  },
+  "geo-tbilisi": {
+   "aliases": [
+    "Tiflis"
+   ]
+  },
+  "gha-accra": {
+   "aliases": []
+  },
+  "gha-kumasi": {
+   "aliases": []
+  },
+  "gin-conakry": {
+   "aliases": []
+  },
+  "gin-gueckedougou": {
+   "aliases": []
+  },
+  "gmb-banjul": {
+   "aliases": []
+  },
+  "gmb-brikama": {
+   "aliases": []
+  },
+  "gnb-bissau": {
+   "aliases": []
+  },
+  "gnq-bata": {
+   "aliases": []
+  },
+  "gnq-malabo": {
+   "aliases": []
+  },
+  "grc-athens": {
+   "aliases": [
+    "Athina"
+   ]
+  },
+  "grc-thessaloniki": {
+   "aliases": [
+    "Salonica",
+    "Salonika",
+    "Thessalonica"
+   ]
+  },
+  "grd-st-george-s": {
+   "aliases": []
+  },
+  "gtm-guatemala-city": {
+   "aliases": []
+  },
+  "gtm-quetzaltenango": {
+   "aliases": []
+  },
+  "guy-georgetown": {
+   "aliases": []
+  },
+  "hnd-san-pedro-sula": {
+   "aliases": []
+  },
+  "hnd-tegucigalpa": {
+   "aliases": []
+  },
+  "hrv-split": {
+   "aliases": []
+  },
+  "hrv-zagreb": {
+   "aliases": []
+  },
+  "hti-cap-haitien": {
+   "aliases": []
+  },
+  "hti-port-au-prince": {
+   "aliases": []
+  },
+  "hun-budapest": {
+   "aliases": []
+  },
+  "hun-miskolc": {
+   "aliases": []
+  },
+  "idn-bandung": {
+   "aliases": []
+  },
+  "idn-bekasi": {
+   "aliases": []
+  },
+  "idn-cilacap": {
+   "aliases": []
+  },
+  "idn-jakarta": {
+   "aliases": [
+    "Djakarta",
+    "Batavia"
+   ]
+  },
+  "idn-makassar": {
+   "aliases": []
+  },
+  "idn-medan": {
+   "aliases": []
+  },
+  "idn-palembang": {
+   "aliases": []
+  },
+  "idn-semarang": {
+   "aliases": []
+  },
+  "idn-surabaya": {
+   "aliases": []
+  },
+  "ind-ahmedabad": {
+   "aliases": []
+  },
+  "ind-amaravati": {
+   "aliases": []
+  },
+  "ind-bengaluru": {
+   "aliases": [
+    "Bangalore"
+   ]
+  },
+  "ind-chennai": {
+   "aliases": [
+    "Madras"
+   ]
+  },
+  "ind-delhi": {
+   "aliases": [
+    "Dilli"
+   ]
+  },
+  "ind-hyderabad": {
+   "aliases": []
+  },
+  "ind-kolkata": {
+   "aliases": [
+    "Calcutta"
+   ]
+  },
+  "ind-mumbai": {
+   "aliases": [
+    "Bombay"
+   ]
+  },
+  "ind-new-delhi": {
+   "aliases": []
+  },
+  "ind-pune": {
+   "aliases": [
+    "Poona"
+   ]
+  },
+  "ind-varanasi": {
+   "aliases": [
+    "Benares",
+    "Banaras"
+   ]
+  },
+  "irl-cork": {
+   "aliases": [
+    "Corcaigh"
+   ]
+  },
+  "irl-dublin": {
+   "aliases": [
+    "Baile Átha Cliath"
+   ]
+  },
+  "irn-isfahan": {
+   "aliases": []
+  },
+  "irn-karaj": {
+   "aliases": []
+  },
+  "irn-mashhad": {
+   "aliases": []
+  },
+  "irn-shiraz": {
+   "aliases": []
+  },
+  "irn-tabriz": {
+   "aliases": []
+  },
+  "irn-tehran": {
+   "aliases": [
+    "Teheran"
+   ]
+  },
+  "irq-baghdad": {
+   "aliases": []
+  },
+  "irq-mosul": {
+   "aliases": []
+  },
+  "isl-reykjavik": {
+   "aliases": []
+  },
+  "isr-haifa": {
+   "aliases": []
+  },
+  "isr-jerusalem": {
+   "aliases": [
+    "Yerushalayim",
+    "Al-Quds"
+   ]
+  },
+  "isr-tel-aviv": {
+   "aliases": []
+  },
+  "ita-florence": {
+   "aliases": [
+    "Firenze"
+   ]
+  },
+  "ita-genoa": {
+   "aliases": [
+    "Genova"
+   ]
+  },
+  "ita-milan": {
+   "aliases": [
+    "Milano"
+   ]
+  },
+  "ita-naples": {
+   "aliases": [
+    "Napoli"
+   ]
+  },
+  "ita-rome": {
+   "aliases": [
+    "Roma"
+   ]
+  },
+  "ita-turin": {
+   "aliases": [
+    "Torino"
+   ]
+  },
+  "ita-venice": {
+   "aliases": [
+    "Venezia"
+   ]
+  },
+  "jam-kingston": {
+   "aliases": []
+  },
+  "jam-spanish-town": {
+   "aliases": []
+  },
+  "jor-amman": {
+   "aliases": []
+  },
+  "jor-zarqa": {
+   "aliases": []
+  },
+  "jpn-fukuoka": {
+   "aliases": []
+  },
+  "jpn-hiroshima": {
+   "aliases": []
+  },
+  "jpn-kyoto": {
+   "aliases": []
+  },
+  "jpn-nagoya": {
+   "aliases": []
+  },
+  "jpn-osaka": {
+   "aliases": []
+  },
+  "jpn-sapporo": {
+   "aliases": []
+  },
+  "jpn-sendai": {
+   "aliases": []
+  },
+  "jpn-tokyo": {
+   "aliases": []
+  },
+  "jpn-yokohama": {
+   "aliases": []
+  },
+  "kaz-almaty": {
+   "aliases": [
+    "Alma-Ata",
+    "Alma Ata"
+   ]
+  },
+  "kaz-nur-sultan": {
+   "display": "Astana",
+   "aliases": [
+    "Nur-Sultan",
+    "Akmola",
+    "Tselinograd"
+   ]
+  },
+  "ken-mombasa": {
+   "aliases": []
+  },
+  "ken-nairobi": {
+   "aliases": []
+  },
+  "kgz-bishkek": {
+   "aliases": [
+    "Frunze"
+   ]
+  },
+  "kgz-osh": {
+   "aliases": []
+  },
+  "khm-battambang": {
+   "aliases": []
+  },
+  "khm-phnom-penh": {
+   "aliases": []
+  },
+  "kir-south-tarawa": {
+   "aliases": []
+  },
+  "kna-basseterre": {
+   "aliases": []
+  },
+  "kor-busan": {
+   "aliases": []
+  },
+  "kor-changwon": {
+   "aliases": []
+  },
+  "kor-daegu": {
+   "aliases": []
+  },
+  "kor-daejeon": {
+   "aliases": []
+  },
+  "kor-gwangju": {
+   "aliases": []
+  },
+  "kor-incheon": {
+   "aliases": []
+  },
+  "kor-seoul": {
+   "aliases": []
+  },
+  "kor-suwon": {
+   "aliases": []
+  },
+  "kor-ulsan": {
+   "aliases": []
+  },
+  "kos-pristina": {
+   "aliases": [
+    "Prishtina",
+    "Priština"
+   ]
+  },
+  "kos-prizren": {
+   "aliases": []
+  },
+  "kwt-al-jahra": {
+   "aliases": []
+  },
+  "kwt-kuwait-city": {
+   "aliases": []
+  },
+  "lao-luang-prabang": {
+   "aliases": []
+  },
+  "lao-vientiane": {
+   "aliases": [
+    "Viangchan"
+   ]
+  },
+  "lbn-beirut": {
+   "aliases": []
+  },
+  "lbn-tripoli": {
+   "aliases": []
+  },
+  "lbr-monrovia": {
+   "aliases": []
+  },
+  "lby-benghazi": {
+   "aliases": []
+  },
+  "lby-tripoli": {
+   "aliases": [
+    "Tarabulus"
+   ]
+  },
+  "lca-castries": {
+   "aliases": []
+  },
+  "lie-vaduz": {
+   "aliases": []
+  },
+  "lka-jaffna": {
+   "aliases": []
+  },
+  "lka-sri-jayawardenepura-kotte": {
+   "aliases": [
+    "Kotte",
+    "Sri Jayewardenepura Kotte"
+   ],
+   "reject": [
+    "Sri Jawewardenepura Kotte"
+   ]
+  },
+  "lso-maseru": {
+   "aliases": []
+  },
+  "ltu-kaunas": {
+   "aliases": []
+  },
+  "ltu-vilnius": {
+   "aliases": []
+  },
+  "lux-luxembourg": {
+   "aliases": [
+    "Luxembourg City",
+    "Luxemburg"
+   ]
+  },
+  "lva-daugavpils": {
+   "aliases": []
+  },
+  "lva-riga": {
+   "aliases": []
+  },
+  "mar-casablanca": {
+   "aliases": []
+  },
+  "mar-fez": {
+   "aliases": [],
+   "reject": [
+    "F-s"
+   ]
+  },
+  "mar-marrakesh": {
+   "aliases": [
+    "Marrakech"
+   ]
+  },
+  "mar-rabat": {
+   "aliases": []
+  },
+  "mar-tangier": {
+   "aliases": [
+    "Tangiers",
+    "Tanger"
+   ]
+  },
+  "mco-monaco": {
+   "aliases": []
+  },
+  "mda-chisinau": {
+   "aliases": [
+    "Kishinev"
+   ]
+  },
+  "mda-tiraspol": {
+   "aliases": []
+  },
+  "mdg-antananarivo": {
+   "aliases": [
+    "Tananarive"
+   ]
+  },
+  "mdg-antsirabe": {
+   "aliases": []
+  },
+  "mdv-male": {
+   "aliases": []
+  },
+  "mex-ciudad-juarez": {
+   "aliases": []
+  },
+  "mex-guadalajara": {
+   "aliases": []
+  },
+  "mex-leon-de-los-aldama": {
+   "aliases": []
+  },
+  "mex-mexico-city": {
+   "aliases": [
+    "Ciudad de México",
+    "CDMX",
+    "Mexico"
+   ],
+   "reject": [
+    "Ciudad de M"
+   ]
+  },
+  "mex-monterrey": {
+   "aliases": []
+  },
+  "mex-puebla-city": {
+   "aliases": []
+  },
+  "mex-tijuana": {
+   "aliases": []
+  },
+  "mex-toluca": {
+   "aliases": []
+  },
+  "mex-torreon": {
+   "aliases": []
+  },
+  "mhl-majuro": {
+   "aliases": []
+  },
+  "mkd-skopje": {
+   "aliases": []
+  },
+  "mkd-tetovo": {
+   "aliases": []
+  },
+  "mli-bamako": {
+   "aliases": []
+  },
+  "mli-sikasso": {
+   "aliases": []
+  },
+  "mlt-valletta": {
+   "aliases": []
+  },
+  "mmr-mandalay": {
+   "aliases": []
+  },
+  "mmr-naypyidaw": {
+   "aliases": [
+    "Naypyitaw"
+   ]
+  },
+  "mmr-yangon": {
+   "aliases": [
+    "Rangoon"
+   ]
+  },
+  "mne-podgorica": {
+   "aliases": [
+    "Titograd"
+   ]
+  },
+  "mng-ulaanbaatar": {
+   "aliases": [
+    "Ulan Bator"
+   ]
+  },
+  "moz-maputo": {
+   "aliases": [
+    "Lourenço Marques"
+   ]
+  },
+  "moz-matola": {
+   "aliases": []
+  },
+  "mrt-nouakchott": {
+   "aliases": []
+  },
+  "mrt-saint-louis": {
+   "aliases": []
+  },
+  "mus-curepipe": {
+   "aliases": []
+  },
+  "mus-port-louis": {
+   "aliases": []
+  },
+  "mwi-blantyre": {
+   "aliases": []
+  },
+  "mwi-lilongwe": {
+   "aliases": []
+  },
+  "mys-george-town": {
+   "aliases": []
+  },
+  "mys-kuala-lumpur": {
+   "aliases": []
+  },
+  "nam-windhoek": {
+   "aliases": []
+  },
+  "ner-niamey": {
+   "aliases": []
+  },
+  "ner-niamey-maradi": {
+   "display": "Maradi",
+   "aliases": [],
+   "reject": [
+    "Niamey"
+   ]
+  },
+  "nga-abuja": {
+   "aliases": []
+  },
+  "nga-benin-city": {
+   "aliases": []
+  },
+  "nga-ibadan": {
+   "aliases": []
+  },
+  "nga-ikare": {
+   "aliases": []
+  },
+  "nga-kaduna": {
+   "aliases": []
+  },
+  "nga-kano": {
+   "aliases": []
+  },
+  "nga-lagos": {
+   "aliases": []
+  },
+  "nga-port-harcourt": {
+   "aliases": []
+  },
+  "nic-leon": {
+   "aliases": []
+  },
+  "nic-managua": {
+   "aliases": []
+  },
+  "nld-amsterdam": {
+   "aliases": []
+  },
+  "nld-rotterdam": {
+   "aliases": []
+  },
+  "nld-the-hague": {
+   "aliases": [
+    "Den Haag",
+    "'s-Gravenhage"
+   ]
+  },
+  "nor-bergen": {
+   "aliases": []
+  },
+  "nor-oslo": {
+   "aliases": [
+    "Christiania",
+    "Kristiania"
+   ]
+  },
+  "npl-kathmandu": {
+   "aliases": []
+  },
+  "npl-lalitpur": {
+   "aliases": []
+  },
+  "nru-yaren": {
+   "aliases": []
+  },
+  "nzl-auckland": {
+   "aliases": []
+  },
+  "nzl-wellington": {
+   "aliases": []
+  },
+  "omn-muscat": {
+   "aliases": [
+    "Masqat"
+   ]
+  },
+  "omn-seeb": {
+   "aliases": []
+  },
+  "pak-faisalabad": {
+   "aliases": []
+  },
+  "pak-gujranwala": {
+   "aliases": []
+  },
+  "pak-hyderabad": {
+   "aliases": []
+  },
+  "pak-islamabad": {
+   "aliases": []
+  },
+  "pak-karachi": {
+   "aliases": []
+  },
+  "pak-lahore": {
+   "aliases": []
+  },
+  "pak-multan": {
+   "aliases": []
+  },
+  "pak-rawalpindi": {
+   "aliases": []
+  },
+  "pak-saidu-sharif": {
+   "aliases": []
+  },
+  "pan-bucaramanga": {
+   "display": "Colón",
+   "aliases": [],
+   "reject": [
+    "Bucaramanga"
+   ]
+  },
+  "pan-panama-city": {
+   "aliases": [
+    "Ciudad de Panamá"
+   ],
+   "reject": [
+    "Ciudad de Panam"
+   ]
+  },
+  "per-callao": {
+   "aliases": []
+  },
+  "per-lima": {
+   "aliases": []
+  },
+  "phl-cagayan-de-oro": {
+   "aliases": []
+  },
+  "phl-davao-city": {
+   "aliases": []
+  },
+  "phl-manila": {
+   "aliases": []
+  },
+  "phl-quezon-city": {
+   "aliases": []
+  },
+  "plw-koror": {
+   "aliases": []
+  },
+  "plw-melekeok": {
+   "aliases": [
+    "Ngerulmud"
+   ]
+  },
+  "png-lae": {
+   "aliases": []
+  },
+  "png-port-moresby": {
+   "aliases": []
+  },
+  "pol-gdansk": {
+   "aliases": [
+    "Danzig"
+   ]
+  },
+  "pol-katowice": {
+   "aliases": []
+  },
+  "pol-krakow": {
+   "aliases": [
+    "Kraków",
+    "Cracow"
+   ]
+  },
+  "pol-warsaw": {
+   "aliases": [
+    "Warszawa"
+   ]
+  },
+  "prk-nampho": {
+   "aliases": []
+  },
+  "prk-pyongyang": {
+   "aliases": []
+  },
+  "prt-lisbon": {
+   "aliases": [
+    "Lisboa"
+   ]
+  },
+  "prt-porto": {
+   "aliases": [
+    "Oporto"
+   ]
+  },
+  "pry-asuncion": {
+   "aliases": []
+  },
+  "pry-san-lorenzo": {
+   "aliases": []
+  },
+  "psx-gaza-city": {
+   "aliases": []
+  },
+  "psx-ramallah": {
+   "aliases": []
+  },
+  "qat-doha": {
+   "aliases": []
+  },
+  "rou-bucharest": {
+   "aliases": [
+    "București",
+    "Bucuresti"
+   ]
+  },
+  "rou-iasi": {
+   "aliases": []
+  },
+  "rus-chelyabinsk": {
+   "aliases": []
+  },
+  "rus-kaliningrad": {
+   "aliases": [
+    "Königsberg",
+    "Koenigsberg"
+   ]
+  },
+  "rus-kazan": {
+   "aliases": []
+  },
+  "rus-moscow": {
+   "aliases": [
+    "Moskva"
+   ]
+  },
+  "rus-nizhny-novgorod": {
+   "aliases": [
+    "Nizhni Novgorod",
+    "Gorky"
+   ],
+   "reject": [
+    "Novgorod"
+   ]
+  },
+  "rus-novosibirsk": {
+   "aliases": []
+  },
+  "rus-omsk": {
+   "aliases": []
+  },
+  "rus-saint-petersburg": {
+   "aliases": [
+    "Leningrad",
+    "Petrograd",
+    "Sankt-Peterburg"
+   ]
+  },
+  "rus-samara": {
+   "aliases": [
+    "Kuybyshev",
+    "Kuibyshev"
+   ],
+   "reject": [
+    "Kuybyskev"
+   ]
+  },
+  "rus-volgograd": {
+   "aliases": [
+    "Stalingrad"
+   ]
+  },
+  "rus-yekaterinburg": {
+   "aliases": [
+    "Ekaterinburg"
+   ]
+  },
+  "rwa-kigali": {
+   "aliases": []
+  },
+  "rwa-nyanza": {
+   "aliases": []
+  },
+  "sau-dammam": {
+   "aliases": []
+  },
+  "sau-jeddah": {
+   "aliases": []
+  },
+  "sau-mecca": {
+   "aliases": []
+  },
+  "sau-medina": {
+   "aliases": []
+  },
+  "sau-riyadh": {
+   "aliases": []
+  },
+  "sdn-khartoum": {
+   "aliases": []
+  },
+  "sdn-omdurman": {
+   "aliases": []
+  },
+  "sds-juba": {
+   "aliases": []
+  },
+  "sds-yei": {
+   "aliases": []
+  },
+  "sen-dakar": {
+   "aliases": []
+  },
+  "sen-thies": {
+   "aliases": []
+  },
+  "sgp-singapore": {
+   "aliases": []
+  },
+  "slb-honiara": {
+   "aliases": []
+  },
+  "sle-bo": {
+   "aliases": []
+  },
+  "sle-freetown": {
+   "aliases": []
+  },
+  "slv-san-salvador": {
+   "aliases": []
+  },
+  "slv-santa-ana": {
+   "aliases": []
+  },
+  "smr-san-marino": {
+   "aliases": []
+  },
+  "som-hargeisa": {
+   "aliases": []
+  },
+  "som-mogadishu": {
+   "aliases": []
+  },
+  "srb-belgrade": {
+   "aliases": [
+    "Beograd"
+   ]
+  },
+  "srb-nis": {
+   "aliases": []
+  },
+  "stp-sao-tome": {
+   "aliases": []
+  },
+  "sur-paramaribo": {
+   "aliases": []
+  },
+  "svk-bratislava": {
+   "aliases": [
+    "Pressburg",
+    "Pozsony"
+   ]
+  },
+  "svk-kosice": {
+   "aliases": []
+  },
+  "svn-ljubljana": {
+   "aliases": []
+  },
+  "svn-maribor": {
+   "aliases": []
+  },
+  "swe-gothenburg": {
+   "aliases": [
+    "Göteborg"
+   ]
+  },
+  "swe-stockholm": {
+   "aliases": []
+  },
+  "swz-manzini": {
+   "aliases": []
+  },
+  "swz-mbabane": {
+   "aliases": []
+  },
+  "syc-victoria": {
+   "aliases": []
+  },
+  "syr-aleppo": {
+   "aliases": []
+  },
+  "syr-damascus": {
+   "aliases": []
+  },
+  "syr-homs": {
+   "aliases": []
+  },
+  "tcd-bongor": {
+   "aliases": []
+  },
+  "tcd-n-djamena": {
+   "aliases": [
+    "Fort-Lamy"
+   ],
+   "reject": [
+    "N'Djamnna"
+   ]
+  },
+  "tgo-lome": {
+   "aliases": []
+  },
+  "tgo-sokode": {
+   "aliases": []
+  },
+  "tha-bangkok": {
+   "aliases": [
+    "Krung Thep Maha Nakhon"
+   ]
+  },
+  "tha-chiang-mai": {
+   "aliases": []
+  },
+  "tjk-dushanbe": {
+   "aliases": []
+  },
+  "tjk-khujand": {
+   "aliases": []
+  },
+  "tkm-ashgabat": {
+   "aliases": [
+    "Ashkhabad",
+    "Asgabat"
+   ]
+  },
+  "tkm-turkmenabat": {
+   "aliases": []
+  },
+  "tls-dili": {
+   "aliases": []
+  },
+  "ton-nuku-alofa": {
+   "aliases": []
+  },
+  "tto-port-of-spain": {
+   "aliases": []
+  },
+  "tto-san-fernando": {
+   "aliases": []
+  },
+  "tun-sfax": {
+   "aliases": []
+  },
+  "tun-tunis": {
+   "aliases": []
+  },
+  "tur-adana": {
+   "aliases": []
+  },
+  "tur-ankara": {
+   "aliases": []
+  },
+  "tur-bursa": {
+   "aliases": []
+  },
+  "tur-gaziantep": {
+   "aliases": []
+  },
+  "tur-istanbul": {
+   "aliases": [
+    "Constantinople"
+   ]
+  },
+  "tur-izmir": {
+   "aliases": [
+    "Smyrna"
+   ]
+  },
+  "tuv-funafuti": {
+   "aliases": []
+  },
+  "twn-kaohsiung": {
+   "aliases": []
+  },
+  "twn-new-taipei": {
+   "aliases": []
+  },
+  "twn-taichung": {
+   "aliases": []
+  },
+  "twn-tainan": {
+   "aliases": []
+  },
+  "twn-taipei": {
+   "aliases": []
+  },
+  "twn-zhongli": {
+   "aliases": []
+  },
+  "tza-dar-es-salaam": {
+   "aliases": []
+  },
+  "tza-dodoma": {
+   "aliases": []
+  },
+  "uga-kampala": {
+   "aliases": []
+  },
+  "uga-mbale": {
+   "aliases": []
+  },
+  "ukr-dnipro": {
+   "aliases": [
+    "Dnepr",
+    "Dnipropetrovsk"
+   ]
+  },
+  "ukr-kharkiv": {
+   "aliases": [
+    "Kharkov"
+   ]
+  },
+  "ukr-kyiv": {
+   "aliases": [
+    "Kiev"
+   ]
+  },
+  "ukr-lviv": {
+   "aliases": [
+    "Lvov",
+    "Lwów",
+    "Lemberg"
+   ]
+  },
+  "ukr-odessa": {
+   "aliases": [
+    "Odesa"
+   ]
+  },
+  "ury-montevideo": {
+   "aliases": []
+  },
+  "ury-rivera": {
+   "aliases": []
+  },
+  "usa-atlanta": {
+   "aliases": []
+  },
+  "usa-boston": {
+   "aliases": []
+  },
+  "usa-chicago": {
+   "aliases": []
+  },
+  "usa-dallas": {
+   "aliases": []
+  },
+  "usa-los-angeles": {
+   "aliases": []
+  },
+  "usa-miami": {
+   "aliases": []
+  },
+  "usa-new-york-city": {
+   "aliases": [
+    "NYC"
+   ]
+  },
+  "usa-philadelphia": {
+   "aliases": []
+  },
+  "usa-washington": {
+   "aliases": [
+    "Washington DC",
+    "Washington, D.C."
+   ]
+  },
+  "uzb-fergana": {
+   "aliases": []
+  },
+  "uzb-tashkent": {
+   "aliases": [
+    "Toshkent"
+   ]
+  },
+  "vat-vatican-city": {
+   "aliases": [
+    "Vatican",
+    "Holy See"
+   ]
+  },
+  "vct-kingstown": {
+   "aliases": []
+  },
+  "ven-barquisimeto": {
+   "aliases": []
+  },
+  "ven-caracas": {
+   "aliases": []
+  },
+  "ven-maracaibo": {
+   "aliases": []
+  },
+  "ven-maracay": {
+   "aliases": []
+  },
+  "ven-valencia": {
+   "aliases": []
+  },
+  "vnm-can-tho": {
+   "aliases": []
+  },
+  "vnm-da-nang": {
+   "aliases": []
+  },
+  "vnm-haiphong": {
+   "aliases": [
+    "Hai Phong",
+    "Hải Phòng"
+   ],
+   "reject": [
+    "Hai Phnng"
+   ]
+  },
+  "vnm-hanoi": {
+   "aliases": [
+    "Hà Nội"
+   ],
+   "reject": [
+    "H"
+   ]
+  },
+  "vnm-ho-chi-minh-city": {
+   "aliases": [
+    "Saigon",
+    "Sài Gòn",
+    "HCMC"
+   ],
+   "reject": [
+    "Th nh Pho Ho Chy Minh"
+   ]
+  },
+  "vnm-hue": {
+   "aliases": [
+    "Huế"
+   ]
+  },
+  "vut-port-vila": {
+   "aliases": []
+  },
+  "wsm-apia": {
+   "aliases": []
+  },
+  "yem-aden": {
+   "aliases": []
+  },
+  "yem-sanaa": {
+   "aliases": [
+    "Sana'a",
+    "Sana"
+   ],
+   "reject": [
+    "Sana'a'"
+   ]
+  },
+  "zaf-benoni": {
+   "aliases": []
+  },
+  "zaf-cape-town": {
+   "aliases": []
+  },
+  "zaf-durban": {
+   "aliases": []
+  },
+  "zaf-johannesburg": {
+   "aliases": []
+  },
+  "zaf-port-elizabeth": {
+   "aliases": [
+    "Gqeberha"
+   ]
+  },
+  "zaf-pretoria": {
+   "aliases": [
+    "Tshwane"
+   ]
+  },
+  "zaf-vereeniging": {
+   "aliases": []
+  },
+  "zmb-kitwe": {
+   "aliases": []
+  },
+  "zmb-lusaka": {
+   "aliases": []
+  },
+  "zwe-bulawayo": {
+   "aliases": []
+  },
+  "zwe-harare": {
+   "aliases": [
+    "Salisbury"
+   ]
+  }
+ }
+}

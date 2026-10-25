@@ -10,13 +10,13 @@ import mapshaper from 'mapshaper';
 import * as topojson from 'topojson-client';
 import { geoArea, geoBounds, geoCentroid, geoContains, geoDistance } from 'd3-geo';
 import polylabel from 'polylabel';
+import { computeTiers } from '../src/layers/city/tiers.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_SRC = join(ROOT, 'data-src');
 const CACHE = join(ROOT, 'scripts', '.cache');
 const OUT = join(ROOT, 'public', 'data');
-const SOURCE = (res) =>
-  `https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_${res}_admin_0_countries.geojson`;
+const NE_GEOJSON = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson';
 
 // Canonical property names. Source fields are matched case-insensitively because
 // casing differs between Natural Earth releases.
@@ -31,17 +31,20 @@ const EARTH_RADIUS_KM = 6371.0088;
 /** Quiz scopes: name → source file. Add e.g. 'sovereign+dependencies' here later. */
 const SCOPES = { sovereign: 'scope-sovereign.json' };
 
-async function fetchSource(res) {
-  const file = join(CACHE, `ne_${res}_admin_0_countries.geojson`);
+/** A Natural Earth GeoJSON file, downloaded once into scripts/.cache. */
+async function fetchNe(name) {
+  const file = join(CACHE, `${name}.geojson`);
   if (!existsSync(file) || process.argv.includes('--refresh')) {
-    console.log(`Downloading ${res}…`);
-    const resp = await fetch(SOURCE(res));
-    if (!resp.ok) throw new Error(`Download failed for ${res}: HTTP ${resp.status}`);
+    console.log(`Downloading ${name}…`);
+    const resp = await fetch(`${NE_GEOJSON}/${name}.geojson`);
+    if (!resp.ok) throw new Error(`Download failed for ${name}: HTTP ${resp.status}`);
     await mkdir(CACHE, { recursive: true });
     await writeFile(file, Buffer.from(await resp.arrayBuffer()));
   }
   return JSON.parse(await readFile(file, 'utf8'));
 }
+
+const fetchSource = (res) => fetchNe(`ne_${res}_admin_0_countries`);
 
 function normaliseProperties(geojson, res) {
   const sample = geojson.features[0].properties;
@@ -281,6 +284,111 @@ async function writeJson(name, data) {
 
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 
+
+// ---- Cities ------------------------------------------------------------------
+
+/** Cities below this population are only kept if they are a capital or their country's largest. */
+const CITY_POP_FLOOR = 100_000;
+/** Populated-places country codes that differ from the Admin 0 codes. */
+const CITY_COUNTRY_FIX = { SSD: 'SDS' };
+const NOT_CITIES = new Set(['Scientific station', 'Meteorological Station', 'Historic place']);
+
+const slug = (s) =>
+  s
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+/**
+ * cities.json: every populated place in a quiz country with population ≥ 100,000,
+ * plus capitals and each country's largest place, with accepted names. Tiers are
+ * computed at runtime from settings (src/layers/city/tiers.ts).
+ */
+async function buildCities(scopeIds, merges) {
+  const places = (await fetchNe('ne_10m_populated_places')).features.map((f) => f.properties);
+  const { cities: aliasSrc } = await readSource('city-aliases.json');
+  const { capitals } = await readSource('capitals.json');
+  const { cities: extra } = await readSource('extra-cities.json');
+  const countryOf = (a) => {
+    const id = merges[CITY_COUNTRY_FIX[a] ?? a] ?? CITY_COUNTRY_FIX[a] ?? a;
+    return scopeIds.has(id) ? id : null;
+  };
+
+  const unmatched = [];
+  const matched = [];
+  for (const p of places) {
+    if (NOT_CITIES.has(p.FEATURECLA)) continue;
+    const country = countryOf(p.ADM0_A3);
+    if (!country) {
+      if (p.POP_MAX >= CITY_POP_FLOOR) unmatched.push(`${p.NAME} (${p.ADM0_A3}, ${p.ADM0NAME})`);
+      continue;
+    }
+    const names = [p.NAME, p.NAMEASCII, p.NAME_EN, ...String(p.NAMEALT ?? '').split(/[|;]/)].map((n) => n?.trim()).filter(Boolean);
+    matched.push({
+      base: `${country.toLowerCase()}-${slug(p.NAME_EN || p.NAMEASCII)}`,
+      adm1: p.ADM1NAME ?? '',
+      neId: p.NE_ID,
+      record: { i: '', n: p.NAME_EN || p.NAME, c: country, lon: round(p.LONGITUDE, 4), lat: round(p.LATITUDE, 4), p: p.POP_MAX, r: p.SCALERANK, a: names },
+    });
+  }
+  for (const e of extra) {
+    matched.push({ base: `${e.country.toLowerCase()}-${slug(e.name)}`, adm1: '', neId: 0, record: { i: '', n: e.name, c: e.country, lon: e.lon, lat: e.lat, p: e.pop, r: 10, a: [e.name] } });
+  }
+
+  // Stable IDs: the most populous place keeps the plain slug; namesakes in the same country get their region appended.
+  const groups = new Map();
+  for (const m of matched) groups.set(m.base, [...(groups.get(m.base) ?? []), m]);
+  for (const group of groups.values()) {
+    group.sort((a, b) => b.record.p - a.record.p || a.neId - b.neId);
+    const used = new Set();
+    group.forEach((m, i) => {
+      let id = i === 0 ? m.base : `${m.base}-${slug(m.adm1) || m.neId}`;
+      if (used.has(id)) id = `${id}-${m.neId}`;
+      used.add(id);
+      m.record.i = id;
+    });
+  }
+
+  const byId = new Map(matched.map((m) => [m.record.i, m.record]));
+  const capitalIds = new Set();
+  const capitalOut = {};
+  for (const country of scopeIds) {
+    const cap = capitals[country];
+    if (!cap) throw new Error(`capitals.json: no capital for ${country}`);
+    const city = byId.get(cap.city);
+    if (!city) throw new Error(`capitals.json: ${country} capital "${cap.city}" is not a known city`);
+    if (city.c !== country) throw new Error(`capitals.json: ${cap.city} is not in ${country}`);
+    capitalIds.add(cap.city);
+    capitalOut[country] = { city: cap.city, alsoAccept: cap.alsoAccept };
+  }
+  const largest = new Map();
+  for (const m of matched) if (!largest.has(m.record.c) || m.record.p > largest.get(m.record.c).p) largest.set(m.record.c, m.record);
+  const largestIds = new Set([...largest.values()].map((c) => c.i));
+
+  const unknownAliases = Object.keys(aliasSrc).filter((id) => !byId.has(id));
+  if (unknownAliases.length) throw new Error(`city-aliases.json: unknown city IDs ${unknownAliases.join(', ')}`);
+  const cities = matched
+    .map((m) => m.record)
+    .filter((c) => c.p >= CITY_POP_FLOOR || capitalIds.has(c.i) || largestIds.has(c.i))
+    .map((c) => {
+      const extraNames = aliasSrc[c.i];
+      const n = extraNames?.display ?? c.n;
+      const reject = new Set(extraNames?.reject ?? []);
+      // Natural Earth's alternate names include a few garbled fragments; drop very short ones and any rejected.
+      const a = [...new Set([c.n, ...c.a, ...(extraNames?.aliases ?? [])])].filter(
+        (x) => x !== n && !reject.has(x) && x.replace(/[^\p{L}\p{N}]/gu, '').length >= 3,
+      );
+      return { ...c, n, ...(a.length ? { a } : { a: undefined }) };
+    })
+    .sort((a, b) => a.i.localeCompare(b.i));
+
+  const tiers = computeTiers(cities, capitalOut, { majorPopThreshold: 1_000_000, majorMaxPerCountry: 8, homeCountryPopThreshold: 200_000, home: 'GBR' });
+  const missingAliases = cities.filter((c) => (tiers.get(c.i) === 'capital' || tiers.get(c.i) === 'major') && !aliasSrc[c.i]);
+  return { file: { version: 1, popFloor: CITY_POP_FLOOR, capitals: capitalOut, cities }, tiers, unmatched, capitals, missingAliases };
+}
+
 async function main() {
   await mkdir(OUT, { recursive: true });
   const src50 = normaliseProperties(await fetchSource('50m'), '50m');
@@ -361,6 +469,7 @@ async function main() {
   const scopeIds = new Set(Object.values(scopes).flat());
   const merges = await loadMerges(src50.features, scopeIds);
   const names = await loadNames(src50.features, scopeIds);
+  const cityData = await buildCities(scopeIds, merges);
 
   const t0 = performance.now();
   const fc110 = topojson.feature(topo110, topo110.objects.countries);
@@ -374,6 +483,7 @@ async function main() {
     await writeJson('countries-meta.json', records),
     await writeJson('quiz-data.json', { version: 1, scopes, merges, names }),
     await writeJson('country-distances.json', distances),
+    await writeJson('cities.json', cityData.file),
   ];
 
   const missingSovereign = supplemented
@@ -388,6 +498,18 @@ async function main() {
   console.log(`MAPCOLOR7 neighbour conflicts fixed (${recoloured.length}): ${recoloured.join(', ') || 'none'}`);
   console.log(`Label anchors moved inside their country (${movedLabels.length}):\n  ${movedLabels.join('\n  ') || 'none'}`);
   console.log(`Scopes: ${Object.entries(scopes).map(([k, v]) => `${k} ${v.length}`).join(', ')}; scoring merges: ${Object.entries(merges).map(([a, b]) => `${a}→${b}`).join(', ')}`);
+  const tierCounts = { capital: 0, major: 0, extended: 0 };
+  const perCountry = new Map();
+  for (const [id, t] of cityData.tiers) {
+    tierCounts[t]++;
+    if (t !== 'extended') perCountry.set(id.slice(0, 3), (perCountry.get(id.slice(0, 3)) ?? 0) + 1);
+  }
+  console.log(`Cities: ${cityData.file.cities.length} in cities.json; default tiers (home GBR): ${JSON.stringify(tierCounts)}`);
+  console.log(`  Top 10 countries by capital+major cities: ${[...perCountry].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([c, n]) => `${c.toUpperCase()} ${n}`).join(', ')}`);
+  console.log(`  Unmatched places ≥ ${CITY_POP_FLOOR.toLocaleString()} (not in quiz scope): ${cityData.unmatched.join('; ') || 'none'}`);
+  const flagged = Object.entries(cityData.capitals).filter(([, v]) => v.flagged);
+  console.log(`  Capitals flagged for review (${flagged.length}): ${flagged.map(([c, v]) => `${c} → ${v.city}${v.alsoAccept.length ? ` (+${v.alsoAccept.join(', ')})` : ''}`).join('; ')}`);
+  if (cityData.missingAliases.length) console.log(`  Capital/major cities without an aliases entry (${cityData.missingAliases.length}): ${cityData.missingAliases.map((c) => c.i).join(', ')}`);
   console.log(`Distance matrix: ${distances.ids.length} features, ${distances.km.length} pairs in ${(distanceMs / 1000).toFixed(1)} s`);
   console.log(warnings.length ? `Warnings:\n  ${warnings.join('\n  ')}` : 'ID / winding issues: none');
   console.log('Output files:');

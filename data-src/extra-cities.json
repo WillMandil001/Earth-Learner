@@ -1,0 +1,6 @@
+{
+ "description": "Places missing from Natural Earth 10m populated places that the quiz needs (each in-scope country must have a capital).",
+ "cities": [
+  { "name": "Yaren", "country": "NRU", "lon": 166.9209, "lat": -0.5477, "pop": 1100, "note": "De facto seat of government; Nauru has no official capital. Not in NE populated places." }
+ ]
+}
