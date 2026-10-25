@@ -140,18 +140,24 @@ export class CountriesLayer implements Layer {
 
   private drawMarkers(ctx: CanvasRenderingContext2D, state: RenderState): void {
     const r0 = SMALL_COUNTRY.markerRadius;
-    // Draw the hovered/selected marker last so it sits on top of crowded neighbours.
-    const emphasised = (m: Marker) => m.id === state.hovered || m.id === state.selected;
+    // Highlighted (quiz) markers are drawn biggest, in their style's colours.
+    const style = (m: Marker) => {
+      const hl = state.highlights.get(m.id);
+      return hl && HIGHLIGHT_STYLES[hl].stroke ? HIGHLIGHT_STYLES[hl] : null;
+    };
+    // Draw emphasised markers last so they sit on top of crowded neighbours.
+    const emphasised = (m: Marker) => m.id === state.hovered || m.id === state.selected || !!style(m);
     const ordered = [...this.markers.filter((m) => !emphasised(m)), ...this.markers.filter(emphasised)];
     for (const m of ordered) {
       const strong = emphasised(m);
+      const hl = style(m);
       ctx.globalAlpha = strong ? 1 : m.alpha;
       ctx.beginPath();
-      ctx.arc(m.x, m.y, strong ? r0 + 1.5 : r0, 0, 2 * Math.PI);
+      ctx.arc(m.x, m.y, hl ? r0 + 3 : strong ? r0 + 1.5 : r0, 0, 2 * Math.PI);
       ctx.fillStyle = this.fillFor(m.id, state);
       ctx.fill();
-      ctx.lineWidth = strong ? 2 : 1.2;
-      ctx.strokeStyle = m.id === state.selected ? COLORS.selectedOutline : COLORS.markerOutline;
+      ctx.lineWidth = hl ? 2.5 : strong ? 2 : 1.2;
+      ctx.strokeStyle = hl?.stroke ?? (m.id === state.selected ? COLORS.selectedOutline : COLORS.markerOutline);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;

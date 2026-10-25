@@ -163,10 +163,19 @@ export class Globe {
     });
   }
 
-  flyToCountry(id: CountryId, opts: { duration?: number } = {}): Promise<void> {
+  /**
+   * Fly to frame a country's main landmass. `anchor` centres the view on a given
+   * point instead (e.g. the label anchor); `maxZoom` keeps some surrounding context,
+   * so microstates are shown as a clear marker among their neighbours.
+   */
+  flyToCountry(
+    id: CountryId,
+    opts: { duration?: number; anchor?: LonLat; maxZoom?: number; fill?: number } = {},
+  ): Promise<void> {
     const f = this.data.lods.high.byId.get(id);
     if (!f) return Promise.resolve();
-    return this.flyTo(fitCamera(mainParts(f), this.viewport, { fill: 0.7 }), opts);
+    const fit = fitCamera(mainParts(f), this.viewport, { fill: opts.fill ?? 0.7, centre: opts.anchor });
+    return this.flyTo({ ...fit, zoom: Math.min(fit.zoom, opts.maxZoom ?? Infinity) }, { duration: opts.duration });
   }
 
   /** The home view: home country plus its land neighbours, with some context. */
@@ -316,10 +325,11 @@ export class Globe {
     this.requestRender();
   }
 
-  private cancelMotion(): void {
+  private cancelMotion(): boolean {
     const all = [...this.animators];
     this.animators.clear();
     all.forEach((a) => a.cancel?.());
+    return all.length > 0;
   }
 
   private invalidate(): void {

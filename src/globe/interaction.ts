@@ -17,8 +17,8 @@ export interface InteractionHost {
   /** Apply a camera produced by user input (counts as motion for LOD). */
   moveCamera(cam: Camera): void;
   addAnimator(a: Animator): void;
-  /** Stop flights, inertia and smoothed zoom. */
-  cancelMotion(): void;
+  /** Stop flights, inertia and smoothed zoom; true if anything was moving. */
+  cancelMotion(): boolean;
   zoomBy(factor: number): void;
   pointerHover(x: number, y: number): void;
   pointerLeave(): void;
@@ -35,6 +35,8 @@ interface DragState {
   start: Point;
   last: Point;
   moved: boolean;
+  /** The press stopped inertia or a flight: it is never a click. */
+  stoppedMotion: boolean;
   samples: { t: number; x: number; y: number }[];
 }
 
@@ -96,12 +98,12 @@ export class Interaction {
     if (!this.host.isEnabled() || (e.pointerType === 'mouse' && e.button !== 0)) return;
     e.preventDefault();
     this.host.element.setPointerCapture(e.pointerId);
-    this.host.cancelMotion();
+    const stoppedMotion = this.host.cancelMotion();
     this.wheel = null;
     const p = this.local(e);
     this.pointers.set(e.pointerId, p);
     if (this.pointers.size === 1) {
-      this.drag = { start: p, last: p, moved: false, samples: [{ t: performance.now(), ...p }] };
+      this.drag = { start: p, last: p, moved: false, stoppedMotion, samples: [{ t: performance.now(), ...p }] };
     } else if (this.pointers.size === 2) {
       this.startPinch();
     }
@@ -136,7 +138,7 @@ export class Interaction {
       if (this.pointers.size < 2) this.pinch = null;
       // Continue as a drag with the remaining finger, without inertia or a tap.
       const rest = [...this.pointers.values()][0];
-      this.drag = rest ? { start: rest, last: rest, moved: true, samples: [] } : null;
+      this.drag = rest ? { start: rest, last: rest, moved: true, stoppedMotion: false, samples: [] } : null;
       if (!rest) this.host.dragStateChanged(false);
       return;
     }
@@ -144,7 +146,7 @@ export class Interaction {
     this.drag = null;
     if (!d) return;
     if (!d.moved) {
-      if (e.type === 'pointerup') this.tap(this.local(e));
+      if (e.type === 'pointerup' && !d.stoppedMotion) this.tap(this.local(e));
       return;
     }
     this.host.dragStateChanged(false);

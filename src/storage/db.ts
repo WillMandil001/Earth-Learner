@@ -1,0 +1,136 @@
+import { deleteDB, openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from 'idb';
+import type { Direction } from '../settings/schema';
+import type { CardRecord, DailyCounters, ItemKind } from '../srs/queue';
+import type { Grade, SrsReviewLog } from '../srs/scheduler';
+import type { CountryId } from '../types';
+
+/** Bump when the stored shape changes, and add a step to MIGRATIONS. */
+export const SCHEMA_VERSION = 1;
+export const DB_NAME = 'earth-learner';
+/** Demo data (?seed=demo) lives in its own database so it never touches real progress. */
+export const DEMO_DB_NAME = 'earth-learner-demo';
+
+/** One graded answer. Append-only; enough to optimise FSRS weights later. */
+export interface ReviewLogEntry {
+  id?: number;
+  key: string;
+  countryId: CountryId;
+  direction: Direction;
+  kind: ItemKind;
+  /** ts-fsrs review log (rating, state, due, stability, difficulty, …, review time). */
+  log: SrsReviewLog;
+  responseMs: number;
+  /** Typed text, or the clicked feature ID ('' for ocean / no answer). */
+  answer: string;
+  autoGrade: Grade;
+  grade: Grade;
+}
+
+export interface MetaRecord {
+  schemaVersion: number;
+  daily: DailyCounters;
+}
+
+interface Schema extends DBSchema {
+  cards: { key: string; value: CardRecord };
+  reviewLog: { key: number; value: ReviewLogEntry; indexes: { byCard: string } };
+  settings: { key: string; value: unknown };
+  meta: { key: string; value: MetaRecord };
+}
+
+/** Everything in the database, as plain data. */
+export interface Dump {
+  settings: unknown;
+  meta: MetaRecord | null;
+  cards: CardRecord[];
+  reviewLog: ReviewLogEntry[];
+}
+
+type UpgradeTx = IDBPTransaction<Schema, StoreNames<Schema>[], 'versionchange'>;
+
+/** MIGRATIONS[v] upgrades a database from version v-1 to v. */
+const MIGRATIONS: Record<number, (db: IDBPDatabase<Schema>, tx: UpgradeTx) => void> = {
+  1: (db) => {
+    db.createObjectStore('cards', { keyPath: 'key' });
+    db.createObjectStore('reviewLog', { keyPath: 'id', autoIncrement: true }).createIndex('byCard', 'key');
+    db.createObjectStore('settings');
+    db.createObjectStore('meta');
+  },
+};
+
+const STORES = ['cards', 'reviewLog', 'settings', 'meta'] as const;
+
+/** Persistence for the learning loop. The rest of the app only sees this interface. */
+export interface Store {
+  loadCards(): Promise<Map<string, CardRecord>>;
+  /** Save a graded answer atomically: card state, review log entry and counters. */
+  saveAnswer(card: CardRecord, entry: ReviewLogEntry, meta: MetaRecord): Promise<void>;
+  loadSettings(): Promise<unknown>;
+  saveSettings(settings: unknown): Promise<void>;
+  loadMeta(): Promise<MetaRecord | null>;
+  saveMeta(meta: MetaRecord): Promise<void>;
+  dump(): Promise<Dump>;
+  /** Replace everything in one transaction. */
+  replaceAll(dump: Dump): Promise<void>;
+  clearProgress(): Promise<void>;
+  close(): void;
+}
+
+export async function openStore(name = DB_NAME): Promise<Store> {
+  const db = await openDB<Schema>(name, SCHEMA_VERSION, {
+    upgrade(db, oldVersion, newVersion, tx) {
+      for (let v = oldVersion + 1; v <= (newVersion ?? SCHEMA_VERSION); v++) MIGRATIONS[v]?.(db, tx);
+    },
+  });
+
+  return {
+    async loadCards() {
+      const all = await db.getAll('cards');
+      return new Map(all.map((c) => [c.key, c]));
+    },
+    async saveAnswer(card, entry, meta) {
+      const tx = db.transaction(['cards', 'reviewLog', 'meta'], 'readwrite');
+      await Promise.all([
+        tx.objectStore('cards').put(card),
+        tx.objectStore('reviewLog').add(entry),
+        tx.objectStore('meta').put(meta, 'meta'),
+        tx.done,
+      ]);
+    },
+    loadSettings: () => db.get('settings', 'settings'),
+    saveSettings: async (s) => void (await db.put('settings', s, 'settings')),
+    loadMeta: async () => (await db.get('meta', 'meta')) ?? null,
+    saveMeta: async (m) => void (await db.put('meta', m, 'meta')),
+    async dump() {
+      const tx = db.transaction([...STORES], 'readonly');
+      const [settings, meta, cards, reviewLog] = await Promise.all([
+        tx.objectStore('settings').get('settings'),
+        tx.objectStore('meta').get('meta'),
+        tx.objectStore('cards').getAll(),
+        tx.objectStore('reviewLog').getAll(),
+      ]);
+      await tx.done;
+      return { settings: settings ?? null, meta: meta ?? null, cards, reviewLog };
+    },
+    async replaceAll(d) {
+      const tx = db.transaction([...STORES], 'readwrite');
+      await Promise.all(STORES.map((s) => tx.objectStore(s).clear()));
+      const writes: Promise<unknown>[] = [
+        ...d.cards.map((c) => tx.objectStore('cards').put(c)),
+        ...d.reviewLog.map((r) => tx.objectStore('reviewLog').put(r)),
+      ];
+      if (d.settings) writes.push(tx.objectStore('settings').put(d.settings, 'settings'));
+      if (d.meta) writes.push(tx.objectStore('meta').put(d.meta, 'meta'));
+      await Promise.all([...writes, tx.done]);
+    },
+    async clearProgress() {
+      const tx = db.transaction(['cards', 'reviewLog', 'meta'], 'readwrite');
+      await Promise.all([tx.objectStore('cards').clear(), tx.objectStore('reviewLog').clear(), tx.objectStore('meta').clear(), tx.done]);
+    },
+    close: () => db.close(),
+  };
+}
+
+export function deleteStore(name: string): Promise<void> {
+  return deleteDB(name);
+}

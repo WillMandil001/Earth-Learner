@@ -21,7 +21,7 @@ export const DEVICE_PIXEL_RATIO_CAP = 2;
 
 export const INTERACTION = {
   /** Pointer travel (CSS px) before a press becomes a drag instead of a click. */
-  dragThreshold: 4,
+  dragThreshold: 5,
   /** Inertia velocity decay time constant (ms). */
   inertiaDecayMs: 320,
   /** Inertia stops below this screen speed (CSS px/ms). */
