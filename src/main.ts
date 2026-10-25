@@ -1,7 +1,8 @@
 import './style.css';
 import { loadCountries } from './data/loadCountries';
 import { Globe } from './globe/Globe';
-import { CityLayer } from './layers/city/cityLayer';
+import { CityLayer, capitalCardRekey } from './layers/city/cityLayer';
+import { CityRenderLayer } from './layers/city/cityRenderLayer';
 import { loadCities } from './layers/city/cityData';
 import { CountryLayer } from './layers/country/countryLayer';
 import { QuizController } from './quiz/QuizController';
@@ -40,14 +41,23 @@ async function main(): Promise<void> {
   ]);
   const settings = await SettingsStore.load(store, new Set(quizData.scopes.sovereign));
   const countryLayer = new CountryLayer(quizData, data.meta);
-  const cityLayer = new CityLayer(cityData, data, {
-    name: (id) => countryLayer.displayName(id),
-    neighbours: (id) => data.meta.get(id)?.neighbours ?? [],
-  });
+  const countryInfo = {
+    name: (id: string) => countryLayer.displayName(id),
+    neighbours: (id: string) => data.meta.get(id)?.neighbours ?? [],
+  };
+  const cityRender = new CityRenderLayer();
+  const capitalLayer = new CityLayer('capital', cityData, data, countryInfo, cityRender);
+  const cityLayer = new CityLayer('city', cityData, data, countryInfo, cityRender);
   if (demo && (await store.loadCards()).size === 0) {
     await store.replaceAll(generateDemoDump(clock.now(), countryLayer.introductionOrder(settings.value), settings.value));
   }
-  const quiz = await QuizController.create({ store, settings, layers: [countryLayer, cityLayer] });
+  const quiz = await QuizController.create({
+    store,
+    settings,
+    layers: [countryLayer, capitalLayer, cityLayer],
+    // Older Phase 3 progress (or imports of it) kept capitals in the 'city' layer.
+    repair: async () => void (await store.rekeyCards(capitalCardRekey(cityData))),
+  });
 
   const globe = new Globe(stage, data, { labelMode: 'all', homeCountry: settings.value.global.homeCountry });
   const markers = new MapMarkers(stage, globe);
@@ -210,7 +220,7 @@ async function main(): Promise<void> {
 
   if (import.meta.env.DEV) {
     // Handy for poking at the API from the console and for scripted checks.
-    Object.assign(window, { globe, quiz, settings, clock, cityLayer });
+    Object.assign(window, { globe, quiz, settings, clock, cityLayer, capitalLayer });
   }
 }
 

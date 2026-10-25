@@ -104,7 +104,7 @@ export class QuizPanel {
         { class: 'quiz-body' },
         tag,
         prompt,
-        h('p', { class: 'muted' }, 'Click it on the globe. Drag to rotate, scroll to zoom.'),
+        h('p', { class: 'muted' }, p.spec.hint ?? 'Click it on the globe. Drag to rotate, scroll to zoom.'),
         h('div', { class: 'actions' }, h('button', { onclick: () => this.quiz.giveUp() }, "I don't know")),
       );
     }

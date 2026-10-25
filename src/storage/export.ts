@@ -6,7 +6,7 @@ import { SCHEMA_VERSION, type Dump, type MetaRecord, type ReviewLogEntry } from 
 import { migrateCardV1, migrateLogV1, migrateMetaV1 } from './migrations';
 
 export const EXPORT_APP_ID = 'earth-learner';
-const LAYERS: readonly LayerId[] = ['country', 'city'];
+const LAYERS: readonly LayerId[] = ['country', 'capital', 'city'];
 const DIRECTIONS: readonly Direction[] = ['locate', 'name', 'capitalOf'];
 
 export interface ExportFile {

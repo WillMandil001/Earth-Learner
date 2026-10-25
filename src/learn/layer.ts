@@ -4,7 +4,7 @@ import type { Settings, TimeThresholds, TypoTolerance } from '../settings/schema
 import type { CardRecord, LayerQueueConfig } from '../srs/queue';
 import type { CountryId, LonLat } from '../types';
 
-export type LayerId = 'country' | 'city';
+export type LayerId = 'country' | 'capital' | 'city';
 /** Question type. Every layer supports 'locate' and 'name'; layers may add more (cities: 'capitalOf'). */
 export type Direction = 'locate' | 'name' | 'capitalOf';
 
@@ -53,6 +53,8 @@ export interface QuestionSpec {
   prompt: TextPart[];
   /** Short label for the direction chip, e.g. "Find it". */
   chip: string;
+  /** Instruction under the prompt (defaults to a generic one). */
+  hint?: string;
 }
 
 /**
@@ -84,7 +86,8 @@ export interface LearnLayer {
   grading(direction: Direction, settings: Settings): { thresholds: TimeThresholds; typoTolerance: TypoTolerance };
 
   question(itemId: string, direction: Direction, settings: Settings): QuestionSpec;
-  evaluateClick(itemId: string, click: ClickInput, settings: Settings): Evaluation;
+  /** Null = the click is not an answer (e.g. it missed every dot); the question stays open. */
+  evaluateClick(itemId: string, click: ClickInput, settings: Settings): Evaluation | null;
   evaluateTyped(itemId: string, direction: Direction, text: string, settings: Settings): Evaluation;
   /** Explanation shown on the reveal screen (the verdict itself is generic). */
   revealDetail(itemId: string, direction: Direction, result: Evaluation & { answer: string; gaveUp: boolean }): TextPart[];

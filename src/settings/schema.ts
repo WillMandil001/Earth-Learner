@@ -35,24 +35,33 @@ export interface CountryLayerSettings extends CommonLayerSettings {
   scope: ScopeId;
 }
 
+/** How a city "Find it" question looks: a blank map, or every city as an unnamed dot. */
+export type CityFindMode = 'blank' | 'dots';
+
+/** Settings shared by the two city layers (capital cities and other cities). */
+export interface CityCommonSettings extends CommonLayerSettings {
+  requireCountryFirst: boolean;
+  showCountryInPrompt: boolean;
+  showCountryLabelsDuringName: boolean;
+  findMode: CityFindMode;
+  /** Blank-map Find: a click within this distance of the city is correct. */
+  locateRadiusKm: number;
+}
+
+export interface CapitalLayerSettings extends CityCommonSettings {
+  capitalOf: boolean;
+}
+
 export interface CityTiers {
-  capitals: boolean;
   major: boolean;
   extended: boolean;
 }
 
-export interface CityLayerSettings extends CommonLayerSettings {
-  capitalOf: boolean;
+export interface CityLayerSettings extends CityCommonSettings {
   tiers: CityTiers;
   majorPopThreshold: number;
   majorMaxPerCountry: number;
   homeCountryPopThreshold: number;
-  requireCountryFirst: boolean;
-  showCountryInPrompt: boolean;
-  showDotsDuringFind: boolean;
-  showCountryLabelsDuringName: boolean;
-  maxLocateKm: number;
-  preciseKm: number;
 }
 
 export interface GlobalSettings {
@@ -69,11 +78,26 @@ export interface Settings {
   global: GlobalSettings;
   /** Shared by all layers for now; per-layer parameters would live under layers.* later. */
   fsrs: SchedulerParams;
-  layers: { country: CountryLayerSettings; city: CityLayerSettings };
+  layers: { country: CountryLayerSettings; capital: CapitalLayerSettings; city: CityLayerSettings };
 }
 
 /** Lowest population included in cities.json, so thresholds can't go below it. */
 export const CITY_POP_FLOOR = 100_000;
+
+const CITY_COMMON_DEFAULTS: CityCommonSettings = {
+  enabled: true,
+  directionMode: 'both',
+  newPerDay: 5,
+  maxReviewsPerDay: 200,
+  pauseNewIfDueAbove: 50,
+  burySiblings: true,
+  grading: { locate: { easySeconds: 6, hardSeconds: 18 }, name: { easySeconds: 6, hardSeconds: 15 }, typoTolerance: 'normal' },
+  requireCountryFirst: true,
+  showCountryInPrompt: true,
+  showCountryLabelsDuringName: false,
+  findMode: 'blank',
+  locateRadiusKm: 50,
+};
 
 export const DEFAULT_SETTINGS: Settings = {
   global: { homeCountry: HOME_COUNTRY, dayStartHour: 4, learnAheadMinutes: 20, showTimer: true, layerFilter: 'all' },
@@ -89,25 +113,16 @@ export const DEFAULT_SETTINGS: Settings = {
       grading: { locate: { easySeconds: 5, hardSeconds: 15 }, name: { easySeconds: 6, hardSeconds: 15 }, typoTolerance: 'normal' },
       scope: 'sovereign',
     },
-    city: {
-      enabled: true,
-      directionMode: 'both',
-      newPerDay: 5,
-      maxReviewsPerDay: 200,
-      pauseNewIfDueAbove: 50,
-      burySiblings: true,
-      grading: { locate: { easySeconds: 6, hardSeconds: 18 }, name: { easySeconds: 6, hardSeconds: 15 }, typoTolerance: 'normal' },
+    capital: {
+      ...CITY_COMMON_DEFAULTS,
       capitalOf: false,
-      tiers: { capitals: true, major: true, extended: false },
+    },
+    city: {
+      ...CITY_COMMON_DEFAULTS,
+      tiers: { major: true, extended: false },
       majorPopThreshold: 1_000_000,
       majorMaxPerCountry: 8,
       homeCountryPopThreshold: 200_000,
-      requireCountryFirst: true,
-      showCountryInPrompt: true,
-      showDotsDuringFind: false,
-      showCountryLabelsDuringName: false,
-      maxLocateKm: 300,
-      preciseKm: 75,
     },
   },
 };
@@ -369,31 +384,60 @@ const COUNTRY_FIELDS: FieldSpec[] = [
   },
 ];
 
-const cityNumber = (
-  k: string,
-  label: string,
-  description: string,
-  min: number,
-  max: number,
-  step: number,
-): FieldSpec => ({ path: `layers.city.${k}`, section: 'layer:city', kind: 'number', min, max, step, integer: true, label, description });
-const cityBool = (k: string, label: string, description: string): FieldSpec => ({
-  path: `layers.city.${k}`,
-  section: 'layer:city',
+const num = (layer: LayerId, k: string, label: string, description: string, min: number, max: number, step: number): FieldSpec => ({
+  path: `layers.${layer}.${k}`,
+  section: `layer:${layer}`,
+  kind: 'number',
+  min,
+  max,
+  step,
+  integer: true,
+  label,
+  description,
+});
+const bool = (layer: LayerId, k: string, label: string, description: string): FieldSpec => ({
+  path: `layers.${layer}.${k}`,
+  section: `layer:${layer}`,
   kind: 'boolean',
   label,
   description,
 });
 
+/** Fields shared by both city layers. */
+function cityCommonFields(layer: 'capital' | 'city', noun: string): FieldSpec[] {
+  return [
+    ...commonLayerFields(layer, noun),
+    {
+      path: `layers.${layer}.findMode`,
+      section: `layer:${layer}`,
+      kind: 'select',
+      label: 'Find it: map',
+      description: 'Blank map: click where the city is. Dots: every city is shown as an unnamed dot; click the right one.',
+      options: [
+        { value: 'blank', label: 'Blank map (click within the distance below)' },
+        { value: 'dots', label: 'All city dots, no names' },
+      ],
+    },
+    num(layer, 'locateRadiusKm', 'Find it (blank map): correct within (km)', 'A click this close to the city counts as correct.', 5, 1000, 5),
+    bool(layer, 'requireCountryFirst', 'Learn the country first', "Introduce a city only once you can find its country (its Find it card has graduated)."),
+    bool(layer, 'showCountryInPrompt', 'Show country in Find prompts', 'Ask "Lyon, France" rather than just "Lyon".'),
+    bool(layer, 'showCountryLabelsDuringName', 'Show country names during Name', 'Keep country labels on while naming a city.'),
+  ];
+}
+
+const CAPITAL_FIELDS: FieldSpec[] = [
+  ...cityCommonFields('capital', 'capital cities'),
+  bool('capital', 'capitalOf', '"Capital of…?" questions', 'Also ask for the capital of each country by name.'),
+];
+
 const CITY_FIELDS: FieldSpec[] = [
-  ...commonLayerFields('city', 'cities'),
-  cityBool('capitalOf', '"Capital of…?" questions', 'Also ask for the capital of each country by name (capitals only).'),
-  cityBool('tiers.capitals', 'Capitals', 'One capital per country.'),
-  cityBool('tiers.major', 'Major cities', 'Big non-capital cities (see the thresholds below).'),
-  cityBool('tiers.extended', 'Extended cities', 'Cities over 300,000 people, up to 25 per country.'),
-  cityNumber('majorPopThreshold', 'Major city population', 'Non-capital cities at least this big count as major.', CITY_POP_FLOOR, 20_000_000, 100_000),
-  cityNumber('majorMaxPerCountry', 'Major cities per country', 'At most this many major cities per country, biggest first.', 1, 50, 1),
-  cityNumber(
+  ...cityCommonFields('city', 'cities'),
+  bool('city', 'tiers.major', 'Major cities', 'Big non-capital cities (see the thresholds below).'),
+  bool('city', 'tiers.extended', 'Extended cities', 'Cities over 300,000 people, up to 25 per country.'),
+  num('city', 'majorPopThreshold', 'Major city population', 'Non-capital cities at least this big count as major.', CITY_POP_FLOOR, 20_000_000, 100_000),
+  num('city', 'majorMaxPerCountry', 'Major cities per country', 'At most this many major cities per country, biggest first.', 1, 50, 1),
+  num(
+    'city',
     'homeCountryPopThreshold',
     'Home country city population',
     'In your home country, cities at least this big count as major.',
@@ -401,16 +445,10 @@ const CITY_FIELDS: FieldSpec[] = [
     5_000_000,
     50_000,
   ),
-  cityBool('requireCountryFirst', 'Learn the country first', "Introduce a city only once you can find its country (its Find it card has graduated)."),
-  cityBool('showCountryInPrompt', 'Show country in Find prompts', 'Ask "Lyon, France" rather than just "Lyon".'),
-  cityBool('showDotsDuringFind', 'Show city dots during Find', 'Show all city dots while you look for a city (click one to answer).'),
-  cityBool('showCountryLabelsDuringName', 'Show country names during Name', 'Keep country labels on while naming a city.'),
-  cityNumber('maxLocateKm', 'Find it: furthest accepted click (km)', 'A click further than this from the city is wrong, even with no nearer city.', 25, 2000, 25),
-  cityNumber('preciseKm', 'Find it: precise within (km)', 'A correct click further than this counts as Hard at best.', 5, 500, 5),
 ];
 
 /** Every editable setting, in display order. The settings panel renders from this list. */
-export const FIELDS: FieldSpec[] = [...GLOBAL_FIELDS, ...SCHEDULER_FIELDS, ...COUNTRY_FIELDS, ...CITY_FIELDS];
+export const FIELDS: FieldSpec[] = [...GLOBAL_FIELDS, ...SCHEDULER_FIELDS, ...COUNTRY_FIELDS, ...CAPITAL_FIELDS, ...CITY_FIELDS];
 
 export function getPath(obj: unknown, path: string): unknown {
   return path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], obj);
@@ -448,7 +486,7 @@ function checkField(f: FieldSpec, v: unknown, countries: ReadonlySet<CountryId> 
   }
 }
 
-const LAYER_FILTERS: LayerFilter[] = ['all', 'country', 'city'];
+const LAYER_FILTERS: LayerFilter[] = ['all', 'country', 'capital', 'city'];
 
 /**
  * Set one field, returning the new settings or an error. `countries` (the
@@ -530,6 +568,11 @@ export function normaliseSettings(input: unknown): { settings: Settings; replace
       settings = setPath(settings, f.path, getPath(DEFAULT_SETTINGS, f.path));
       replaced.push(f.path);
     }
+  }
+  // Earlier Phase 3 builds had one city layer with a "show dots" switch.
+  if (getPath(raw, 'layers.city.showDotsDuringFind') === true && getPath(raw, 'layers.city.findMode') === undefined) {
+    settings.layers.city.findMode = 'dots';
+    settings.layers.capital.findMode = 'dots';
   }
   const filter = getPath(raw, 'global.layerFilter');
   if (LAYER_FILTERS.includes(filter as LayerFilter)) settings.global.layerFilter = filter as LayerFilter;

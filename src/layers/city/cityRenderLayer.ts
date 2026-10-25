@@ -31,10 +31,18 @@ export class CityRenderLayer implements Layer, LabelProvider {
   visible = true;
   mode: CityRenderMode = 'explore';
   selected: string | null = null;
+  /** In 'dots' mode: the cities shown, as plain unnamed dots, at every zoom. */
+  private quizDots: ReadonlySet<string> = new Set();
   /** Countries whose cities are left out this frame (e.g. those drawn as small-country markers). Called once per frame. */
   skipCountries: (() => ReadonlySet<string>) | null = null;
   private cities: RenderCity[] = [];
   private shown: { c: RenderCity; x: number; y: number }[] = [];
+
+  /** Quiz "Find it" with dots: show exactly these cities, all alike, with no names. */
+  showQuizDots(ids: Iterable<string>): void {
+    this.quizDots = new Set(ids);
+    this.mode = 'dots';
+  }
 
   /** Replace the drawn set (after tier settings or the home country change). */
   setCities(cities: RenderCity[]): void {
@@ -46,11 +54,16 @@ export class CityRenderLayer implements Layer, LabelProvider {
     if (!this.visible || this.mode === 'hidden') return;
     const centre: LonLat = [state.camera.lon, state.camera.lat];
     const { width, height } = state.viewport;
-    const skip = this.skipCountries?.();
+    const dots = this.mode === 'dots';
+    const skip = dots ? null : this.skipCountries?.();
     for (const c of this.cities) {
-      if (skip?.has(c.rec.c)) continue;
-      const minZoom = TIER_MIN_ZOOM[c.tier] / (c.home ? HOME_ZOOM_FACTOR : 1);
-      if (state.camera.zoom < minZoom) continue;
+      if (dots) {
+        if (!this.quizDots.has(c.rec.i)) continue;
+      } else {
+        if (skip?.has(c.rec.c)) continue;
+        const minZoom = TIER_MIN_ZOOM[c.tier] / (c.home ? HOME_ZOOM_FACTOR : 1);
+        if (state.camera.zoom < minZoom) continue;
+      }
       const ll: LonLat = [c.rec.lon, c.rec.lat];
       if (geoDistance(centre, ll) > MAX_LABEL_ANGLE) continue;
       const p = projection(ll);
@@ -63,11 +76,13 @@ export class CityRenderLayer implements Layer, LabelProvider {
     const hovered = state.hoveredHit?.layer === this.id ? state.hoveredHit.id : null;
     for (const { c, x, y } of this.shown) {
       const strong = c.rec.i === hovered || c.rec.i === this.selected;
-      const r = (c.tier === 'extended' ? 1.8 : c.tier === 'major' ? 2.6 : 2.2) + (strong ? 1.2 : 0);
+      // In quiz dots mode every city looks the same (no capital rings giving hints).
+      const plain = this.mode === 'dots';
+      const r = plain ? 2.6 + (strong ? 1.4 : 0) : (c.tier === 'extended' ? 1.8 : c.tier === 'major' ? 2.6 : 2.2) + (strong ? 1.2 : 0);
       ctx.fillStyle = c.rec.i === this.selected ? COLORS.selectedOutline : COLORS.labelText;
       ctx.strokeStyle = COLORS.labelHalo;
       ctx.lineWidth = 1.2;
-      if (c.tier === 'capital') {
+      if (c.tier === 'capital' && !plain) {
         ctx.beginPath();
         ctx.arc(x, y, r + 2.6, 0, 2 * Math.PI);
         ctx.lineWidth = 3;

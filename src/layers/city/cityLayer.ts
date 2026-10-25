@@ -1,19 +1,24 @@
 import { geoDistance } from 'd3-geo';
 import { DIRECTION_CHIP, type ClickInput, type Direction, type Evaluation, type LayerContext, type LearnLayer, type QuestionSpec, type QuizView, type TextPart } from '../../learn/layer';
-import type { CityLayerSettings, Settings } from '../../settings/schema';
+import type { CityCommonSettings, Settings } from '../../settings/schema';
 import { buildNameIndex, matchAnswer, type NameEntry, type NameIndex } from '../../srs/answerMatch';
 import { cardKey, type LayerQueueConfig } from '../../srs/queue';
 import { cardState } from '../../srs/scheduler';
 import type { CountryData, CountryId, LonLat } from '../../types';
 import type { CityData } from './cityData';
-import { CityRenderLayer, type RenderCity } from './cityRenderLayer';
+import type { CityRenderLayer, RenderCity } from './cityRenderLayer';
 import { computeTiers, type CityRecord, type CityTier } from './tiers';
 
 const EARTH_RADIUS_KM = 6371.0088;
 const TIER_ORDER: Record<CityTier, number> = { capital: 0, major: 1, extended: 2 };
+/** On a wrong blank-map click, name the nearest city if it is at least this close to the click. */
+const NEAR_CITY_KM = 150;
 
 export const kmBetween = (a: LonLat, b: LonLat) => geoDistance(a, b) * EARTH_RADIUS_KM;
 const lonLat = (c: CityRecord): LonLat => [c.lon, c.lat];
+
+/** The two city learn layers: capital cities, and all other (major/extended) cities. */
+export type CityKind = 'capital' | 'city';
 
 /** Country display names (from the country layer) and land neighbours. */
 export interface CountryInfo {
@@ -27,17 +32,21 @@ const tierKey = (s: Settings) => {
   return `${s.global.homeCountry}|${c.majorPopThreshold}|${c.majorMaxPerCountry}|${c.homeCountryPopThreshold}`;
 };
 
+const LABELS: Record<CityKind, { name: string; noun: string }> = {
+  capital: { name: 'Capital cities', noun: 'capital' },
+  city: { name: 'Cities', noun: 'city' },
+};
+
 /**
- * Cities as a learn layer: find a city by clicking near it, name a marked
- * city, and (optionally) "Capital of …?". Tiers and the active set are derived
- * from settings at runtime; changing them never deletes progress.
+ * A city learn layer. One class serves both kinds:
+ * - 'capital': each country's capital; Find it, Name it and (optionally) "Capital of …?";
+ * - 'city': non-capital major (and optionally extended) cities; Find it and Name it.
+ * Tiers and the active set are derived from settings at runtime; changing them never deletes progress.
  */
 export class CityLayer implements LearnLayer {
-  readonly id = 'city' as const;
-  readonly name = 'Cities';
-  readonly noun = 'city';
-  readonly directions: readonly Direction[] = ['locate', 'name', 'capitalOf'];
-  readonly render = new CityRenderLayer();
+  readonly name: string;
+  readonly noun: string;
+  readonly directions: readonly Direction[];
   private readonly index: NameIndex;
   private tierCache: { key: string; tiers: Map<string, CityTier> } | null = null;
   private orderCache: { key: string; active: CityRecord[] } | null = null;
@@ -45,11 +54,21 @@ export class CityLayer implements LearnLayer {
   private candidateCache = new Map<CountryId, Set<string>>();
 
   constructor(
+    readonly id: CityKind,
     private readonly data: CityData,
     private readonly countries: CountryData,
     private readonly info: CountryInfo,
+    /** Shared Explore render layer (also shows unnamed dots during Find questions). */
+    readonly render: CityRenderLayer,
   ) {
+    this.name = LABELS[id].name;
+    this.noun = LABELS[id].noun;
+    this.directions = id === 'capital' ? ['locate', 'name', 'capitalOf'] : ['locate', 'name'];
     this.index = buildNameIndex(data.names, data.cities.map((c) => c.i));
+  }
+
+  private settingsOf(settings: Settings): CityCommonSettings {
+    return settings.layers[this.id];
   }
 
   displayName(id: string): string {
@@ -61,7 +80,7 @@ export class CityLayer implements LearnLayer {
   }
 
   enabled(settings: Settings): boolean {
-    return settings.layers.city.enabled;
+    return this.settingsOf(settings).enabled;
   }
 
   city(id: string): CityRecord | undefined {
@@ -84,21 +103,24 @@ export class CityLayer implements LearnLayer {
     return this.tierCache.tiers;
   }
 
+  /** Is this city in a tier this layer learns? */
+  private inLayer(tier: CityTier | undefined, settings: Settings): boolean {
+    if (this.id === 'capital') return tier === 'capital';
+    const t = settings.layers.city.tiers;
+    return (tier === 'major' && t.major) || (tier === 'extended' && t.extended);
+  }
+
   /**
-   * Cities in enabled tiers, in introduction order: capitals, then major, then
-   * extended; within a tier by distance from the home country's border, then population.
+   * This layer's cities in introduction order: (for 'city': major before
+   * extended), then by distance from the home country's border, then population.
    */
   activeCities(settings: Settings): CityRecord[] {
     const t = settings.layers.city.tiers;
-    const key = `${tierKey(settings)}|${t.capitals}|${t.major}|${t.extended}`;
+    const key = `${tierKey(settings)}|${t.major}|${t.extended}`;
     if (this.orderCache?.key !== key) {
       const tiers = this.tiers(settings);
-      const on: Record<CityTier, boolean> = { capital: t.capitals, major: t.major, extended: t.extended };
       const home = settings.global.homeCountry;
-      const active = this.data.cities.filter((c) => {
-        const tier = tiers.get(c.i);
-        return tier !== undefined && on[tier];
-      });
+      const active = this.data.cities.filter((c) => this.inLayer(tiers.get(c.i), settings));
       active.sort(
         (a, b) =>
           TIER_ORDER[tiers.get(a.i)!] - TIER_ORDER[tiers.get(b.i)!] ||
@@ -109,6 +131,19 @@ export class CityLayer implements LearnLayer {
       this.orderCache = { key, active };
     }
     return this.orderCache.active;
+  }
+
+  /**
+   * Every city location the learner might be asked about: all capitals plus the
+   * cities in the enabled city tiers. These are the dots shown in "dots" Find mode.
+   */
+  allCityDots(settings: Settings): CityRecord[] {
+    const t = settings.layers.city.tiers;
+    const tiers = this.tiers(settings);
+    return this.data.cities.filter((c) => {
+      const tier = tiers.get(c.i);
+      return tier === 'capital' || (tier === 'major' && t.major) || (tier === 'extended' && t.extended);
+    });
   }
 
   /**
@@ -154,7 +189,7 @@ export class CityLayer implements LearnLayer {
   /** Is the city's country learned well enough to introduce the city? */
   countryReady(country: CountryId, ctx: LayerContext): boolean {
     const s = ctx.settings;
-    if (!s.layers.city.requireCountryFirst) return true;
+    if (!this.settingsOf(s).requireCountryFirst) return true;
     const locateActive = s.layers.country.enabled && s.layers.country.directionMode !== 'name';
     if (locateActive) {
       const rec = ctx.cards.get(cardKey('country', country, 'locate'));
@@ -167,15 +202,14 @@ export class CityLayer implements LearnLayer {
   }
 
   queueConfig(ctx: LayerContext): LayerQueueConfig {
-    const s = ctx.settings.layers.city;
-    const tiers = this.tiers(ctx.settings);
+    const s = this.settingsOf(ctx.settings);
     const base: Direction[] = s.directionMode === 'both' ? ['locate', 'name'] : [s.directionMode];
-    const withCapital: Direction[] = s.capitalOf ? [...base, 'capitalOf'] : base;
+    const dirs: Direction[] = this.id === 'capital' && ctx.settings.layers.capital.capitalOf ? [...base, 'capitalOf'] : base;
     const ready = new Map<CountryId, boolean>();
     return {
       layerId: this.id,
       items: this.activeCities(ctx.settings).map((c) => c.i),
-      directions: (id) => (tiers.get(id) === 'capital' ? withCapital : base),
+      directions: () => dirs,
       eligibleNew: (id) => {
         const country = this.data.byId.get(id)?.c;
         if (!country) return false;
@@ -190,46 +224,56 @@ export class CityLayer implements LearnLayer {
   }
 
   grading(direction: Direction, settings: Settings) {
-    const g = settings.layers.city.grading;
+    const g = this.settingsOf(settings).grading;
     return { thresholds: direction === 'locate' ? g.locate : g.name, typoTolerance: g.typoTolerance };
   }
 
   question(id: string, direction: Direction, settings: Settings): QuestionSpec {
+    const s = this.settingsOf(settings);
     const city = this.data.byId.get(id)!;
     const country = this.info.name(city.c);
     if (direction === 'locate') {
       const prompt: TextPart[] = ['Find: ', { strong: city.n }];
-      if (settings.layers.city.showCountryInPrompt) prompt.push(`, ${country}`);
-      return { answer: 'click', chip: DIRECTION_CHIP.locate, prompt };
+      if (s.showCountryInPrompt) prompt.push(`, ${country}`);
+      const hint =
+        s.findMode === 'dots'
+          ? 'Click its dot. Drag to rotate, scroll to zoom.'
+          : `Click where it is (within ${s.locateRadiusKm} km). Drag to rotate, scroll to zoom.`;
+      return { answer: 'click', chip: DIRECTION_CHIP.locate, prompt, hint };
     }
     if (direction === 'capitalOf') {
       const of = this.data.capitalOf.get(id) ?? city.c;
       return { answer: 'type', chip: DIRECTION_CHIP.capitalOf, prompt: ['Capital of ', { strong: this.info.name(of) }, '?'] };
     }
-    return { answer: 'type', chip: DIRECTION_CHIP.name, prompt: ['Name the marked city'] };
+    return { answer: 'type', chip: DIRECTION_CHIP.name, prompt: [`Name the marked ${this.id === 'capital' ? 'capital' : 'city'}`] };
   }
 
   /**
-   * A click is correct if the nearest city in the active set is the target and
-   * it is within maxLocateKm. Beyond preciseKm the grade is capped at Hard.
-   * Clicking a visible dot snaps to that city.
+   * Blank map: correct within locateRadiusKm of the city. Dots: the clicked dot
+   * must be the city; a click that misses every dot is not an answer (null).
    */
-  evaluateClick(id: string, click: ClickInput, settings: Settings): Evaluation {
-    const s = settings.layers.city;
+  evaluateClick(id: string, click: ClickInput, settings: Settings): Evaluation | null {
+    const s = this.settingsOf(settings);
     const target = this.data.byId.get(id)!;
-    const wrong: Evaluation = { correct: false, typo: false, gradeCap: null, clickedItemId: null, distanceKm: null, matchedItemId: null };
-    if (click.cityId) {
+    if (s.findMode === 'dots') {
+      if (!click.cityId) return null;
       const snapped = this.data.byId.get(click.cityId);
-      if (!snapped) return wrong;
-      const km = kmBetween(lonLat(snapped), lonLat(target));
-      return { ...wrong, correct: snapped.i === id, clickedItemId: snapped.i, distanceKm: Math.round(km) };
+      if (!snapped) return null;
+      return {
+        correct: snapped.i === id,
+        typo: false,
+        gradeCap: null,
+        clickedItemId: snapped.i,
+        distanceKm: Math.round(kmBetween(lonLat(snapped), lonLat(target))),
+        matchedItemId: null,
+      };
     }
-    if (!click.lonLat) return wrong;
-    return evaluateCityClick(target, click.lonLat, this.activeCities(settings), s);
+    if (!click.lonLat) return { correct: false, typo: false, gradeCap: null, clickedItemId: null, distanceKm: null, matchedItemId: null };
+    return evaluateCityClick(target, click.lonLat, this.allCityDots(settings), s.locateRadiusKm);
   }
 
   evaluateTyped(id: string, direction: Direction, text: string, settings: Settings): Evaluation {
-    const tol = settings.layers.city.grading.typoTolerance;
+    const tol = this.settingsOf(settings).grading.typoTolerance;
     const city = this.data.byId.get(id)!;
     const m =
       direction === 'capitalOf'
@@ -290,23 +334,21 @@ export class CityLayer implements LearnLayer {
       return ['It is ', { strong: city.n }, `${where}.`, other ? ` "${r.answer.trim()}" is ${other.n}, ${this.info.name(other.c)}.` : ''];
     }
     const km = r.distanceKm;
-    if (r.correct) {
-      return [
-        { strong: city.n },
-        `${where}: your click was ${km?.toLocaleString() ?? '?'} km away.`,
-        r.gradeCap === 'hard' ? ' Not precise enough for better than Hard.' : '',
-      ];
-    }
+    if (r.correct) return [{ strong: city.n }, `${where}: your click was ${km?.toLocaleString() ?? '?'} km away.`];
     if (r.gaveUp || km === null) return ['This is ', { strong: city.n }, `${where}.`];
     const near = r.clickedItemId && r.clickedItemId !== id ? this.data.byId.get(r.clickedItemId) : null;
     return ['This is ', { strong: city.n }, `${where}. `, near ? `You clicked near ${near.n}, ` : 'You clicked ', `${km.toLocaleString()} km off.`];
   }
 
   presentQuestion(view: QuizView, id: string, direction: Direction, settings: Settings): void {
-    const s = settings.layers.city;
+    const s = this.settingsOf(settings);
     const city = this.data.byId.get(id)!;
     view.globe.clearHighlights();
-    this.render.mode = direction === 'locate' && s.showDotsDuringFind ? 'dots' : 'hidden';
+    if (direction === 'locate' && s.findMode === 'dots') {
+      this.render.showQuizDots(this.allCityDots(settings).map((c) => c.i));
+    } else {
+      this.render.mode = 'hidden';
+    }
     view.globe.redraw();
     if (direction === 'name') {
       if (s.showCountryLabelsDuringName) view.globe.setLabelMode('all');
@@ -320,17 +362,19 @@ export class CityLayer implements LearnLayer {
   presentReveal(view: QuizView, id: string, direction: Direction, r: Evaluation & { clickLonLat: LonLat | null }): void {
     const city = this.data.byId.get(id)!;
     const target = lonLat(city);
-    if (direction === 'locate' && r.clickLonLat && !r.correct) {
+    const clicked = r.clickedItemId ? this.data.byId.get(r.clickedItemId) : null;
+    const clickPoint = r.clickLonLat ?? (clicked ? lonLat(clicked) : null);
+    if (direction === 'locate' && clickPoint && !r.correct) {
       view.markers.set([
         { lonLat: target, style: 'answer' },
-        { lonLat: r.clickLonLat, style: 'click' },
+        { lonLat: clickPoint, style: 'click' },
       ]);
-      void view.globe.flyToFit({ type: 'MultiPoint', coordinates: [target, r.clickLonLat] }, { fill: 0.6, minZoom: 1.5, maxZoom: 7 });
+      void view.globe.flyToFit({ type: 'MultiPoint', coordinates: [target, clickPoint] }, { fill: 0.6, minZoom: 1.5, maxZoom: 7 });
       return;
     }
     view.markers.set([
       { lonLat: target, style: 'answer' },
-      ...(direction === 'locate' && r.clickLonLat ? [{ lonLat: r.clickLonLat, style: 'click' as const }] : []),
+      ...(direction === 'locate' && clickPoint ? [{ lonLat: clickPoint, style: 'click' as const }] : []),
     ]);
     if (direction !== 'name') void view.globe.flyTo({ lon: city.lon, lat: city.lat, zoom: Math.max(view.globe.getCamera().zoom, 4) });
   }
@@ -343,31 +387,38 @@ export class CityLayer implements LearnLayer {
   }
 }
 
-/** Pure locate check (exported for tests): nearest active city must be the target, within limits. */
-export function evaluateCityClick(
-  target: CityRecord,
-  click: LonLat,
-  active: readonly CityRecord[],
-  s: Pick<CityLayerSettings, 'maxLocateKm' | 'preciseKm'>,
-): Evaluation {
+/**
+ * Blank-map locate check (exported for tests): correct within `radiusKm` of the
+ * city. For a wrong click, the nearest city (if close to the click) is named.
+ */
+export function evaluateCityClick(target: CityRecord, click: LonLat, cities: readonly CityRecord[], radiusKm: number): Evaluation {
+  const km = kmBetween(click, lonLat(target));
+  const correct = km <= radiusKm;
   let nearest: CityRecord | null = null;
   let nearestKm = Infinity;
-  for (const c of active) {
-    const km = kmBetween(click, lonLat(c));
-    if (km < nearestKm) {
-      nearestKm = km;
-      nearest = c;
+  if (!correct) {
+    for (const c of cities) {
+      const d = kmBetween(click, lonLat(c));
+      if (d < nearestKm) {
+        nearestKm = d;
+        nearest = c;
+      }
     }
   }
-  const km = kmBetween(click, lonLat(target));
-  const correct = nearest?.i === target.i && km <= s.maxLocateKm;
   return {
     correct,
     typo: false,
-    gradeCap: correct && km > s.preciseKm ? 'hard' : null,
-    // Name the nearest city only if the click was plausibly aimed at it.
-    clickedItemId: nearest && nearestKm <= s.maxLocateKm ? nearest.i : null,
+    gradeCap: null,
+    clickedItemId: nearest && nearestKm <= NEAR_CITY_KM ? nearest.i : null,
     distanceKm: Math.round(km),
     matchedItemId: null,
   };
+}
+
+/** Earlier Phase 3 builds kept capitals in the 'city' layer: rekey those cards to 'capital'. */
+export function capitalCardRekey(data: CityData) {
+  return <T extends { layerId: string; itemId: string; direction: string }>(rec: T): T | null =>
+    rec.layerId === 'city' && data.capitalOf.has(rec.itemId)
+      ? { ...rec, layerId: 'capital', key: cardKey('capital', rec.itemId, rec.direction as Direction) }
+      : null;
 }

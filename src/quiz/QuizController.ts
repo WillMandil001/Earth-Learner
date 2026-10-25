@@ -66,6 +66,8 @@ interface Deps {
   store: Store;
   settings: SettingsStore;
   layers: readonly LearnLayer[];
+  /** Fix up stored cards before loading (e.g. after an import of older data). */
+  repair?: () => Promise<void>;
 }
 
 const NO_ANSWER: Evaluation = { correct: false, typo: false, gradeCap: null, clickedItemId: null, distanceKm: null, matchedItemId: null };
@@ -107,6 +109,7 @@ export class QuizController {
 
   /** Re-read cards and counters from storage (after import or reset). */
   async reload(): Promise<void> {
+    await this.deps.repair?.();
     this.cards = await this.deps.store.loadCards();
     const meta = await this.deps.store.loadMeta();
     this.daily = meta?.daily ?? { day: 0, layers: {} };
@@ -193,6 +196,7 @@ export class QuizController {
     const p = this.phase;
     if (p.name !== 'question' || p.spec.answer !== 'click') return;
     const ev = this.layer(p.item.layerId).evaluateClick(p.item.itemId, click, this.settings);
+    if (!ev) return;
     this.reveal({ ...ev, answer: ev.clickedItemId ?? '', clickLonLat: click.lonLat, gaveUp: false, elapsedMs: this.elapsed() });
   }
 

@@ -16,6 +16,7 @@ const SECTIONS: { id: FieldSpec['section']; title: string; note?: string }[] = [
     note: 'Shared by all layers. Changes apply to future reviews; cards already scheduled keep their due dates.',
   },
   { id: 'layer:country', title: 'Countries' },
+  { id: 'layer:capital', title: 'Capital cities' },
   {
     id: 'layer:city',
     title: 'Cities',

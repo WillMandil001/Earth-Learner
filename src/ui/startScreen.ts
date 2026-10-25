@@ -14,7 +14,7 @@ export function renderStartScreen(quiz: QuizController, settings: SettingsStore)
     onchange: (e: Event) => void settings.set('global.layerFilter', (e.target as HTMLSelectElement).value),
   });
   select.append(h('option', { value: 'all', selected: filter === 'all' }, 'All enabled layers'));
-  for (const l of enabled) select.append(h('option', { value: l.id, selected: filter === l.id }, `${l.name} only`));
+  for (const l of enabled) select.append(h('option', { value: l.id, selected: filter === l.id }, l.name));
 
   const active = quiz.activeLayers();
   const paused = active.filter((l) => q.byLayer[l.id]?.pausedNew);

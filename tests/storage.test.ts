@@ -194,3 +194,18 @@ describe('migration v1 → v2', () => {
     expectMigrated(await store.dump(), v1);
   });
 });
+
+describe('rekeying cards', () => {
+  it('moves cards and their review history to new keys', async () => {
+    store = await populated();
+    const moved = await store.rekeyCards((r) =>
+      r.itemId === 'FRA' ? { ...r, layerId: 'capital', key: cardKey('capital', r.itemId, r.direction) } : null,
+    );
+    expect(moved).toBe(2);
+    const d = await store.dump();
+    expect(d.cards.filter((c) => c.layerId === 'capital').map((c) => c.key).sort()).toEqual(['capital:FRA:locate', 'capital:FRA:name']);
+    expect(d.cards.some((c) => c.key.startsWith('country:FRA'))).toBe(false);
+    expect(d.reviewLog.filter((r) => r.itemId === 'FRA').every((r) => r.layerId === 'capital' && r.key.startsWith('capital:FRA'))).toBe(true);
+    expect(await store.rekeyCards(() => null)).toBe(0);
+  });
+});

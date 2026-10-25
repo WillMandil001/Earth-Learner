@@ -4,12 +4,15 @@ A fast, local, canvas-rendered 3D-looking globe for learning world geography.
 
 - **Explore** (Phase 1): spin, zoom, hover and click countries.
 - **Learn**: spaced-repetition questions, introduced outward from your home country and scheduled with
-  FSRS. Progress is stored locally in IndexedDB. Two learn layers:
+  FSRS. Progress is stored locally in IndexedDB. Three learn layers:
   - **Countries**: the 197 sovereign states. "Find it" (click the country) and "Name it" (type the
     highlighted country's name).
-  - **Cities** (Phase 3): capitals and major cities. Find it, Name it (a pulsing marker), and an
-    optional "Capital of …?".
-  A session mixes all enabled layers, or one layer via the filter on the Learn start screen.
+  - **Capital cities**: one per country. Find it, Name it (a pulsing marker), and an optional
+    "Capital of …?".
+  - **Cities**: major (and optionally extended) non-capital cities. Find it and Name it.
+  City Find questions use either a **blank map**, where a click within `locateRadiusKm` (default 50 km)
+  is correct, or **all city dots without names**, where you click the right dot (clicks that miss every
+  dot are ignored). A session mixes all enabled layers, or one via "Study" on the Learn start screen.
 
 ## Run
 

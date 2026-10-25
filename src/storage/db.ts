@@ -94,6 +94,12 @@ export interface Store {
   /** Replace everything in one transaction. */
   replaceAll(dump: Dump): Promise<void>;
   clearProgress(): Promise<void>;
+  /**
+   * Re-file cards under new keys (e.g. moving them to another layer). `rekey`
+   * returns the new record, or null to leave it; the card's review log follows.
+   * Returns how many cards moved.
+   */
+  rekeyCards(rekey: <T extends CardRecord | ReviewLogEntry>(rec: T) => T | null): Promise<number>;
   close(): void;
 }
 
@@ -147,6 +153,28 @@ export async function openStore(name = DB_NAME, version = SCHEMA_VERSION): Promi
     async clearProgress() {
       const tx = db.transaction(['cards', 'reviewLog', 'meta'], 'readwrite');
       await Promise.all([tx.objectStore('cards').clear(), tx.objectStore('reviewLog').clear(), tx.objectStore('meta').clear(), tx.done]);
+    },
+    async rekeyCards(rekey) {
+      const tx = db.transaction(['cards', 'reviewLog'], 'readwrite');
+      const cards = tx.objectStore('cards');
+      let moved = 0;
+      for (const c of await cards.getAll()) {
+        const next = rekey(c);
+        if (!next) continue;
+        await cards.delete(c.key);
+        await cards.put(next);
+        moved++;
+      }
+      if (moved) {
+        let cursor = await tx.objectStore('reviewLog').openCursor();
+        while (cursor) {
+          const next = rekey(cursor.value);
+          if (next) await cursor.update(next);
+          cursor = await cursor.continue();
+        }
+      }
+      await tx.done;
+      return moved;
     },
     close: () => db.close(),
   };
