@@ -1,11 +1,11 @@
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from 'idb';
-import type { Direction } from '../settings/schema';
+import type { Direction, LayerId } from '../learn/layer';
 import type { CardRecord, DailyCounters, ItemKind } from '../srs/queue';
 import type { Grade, SrsReviewLog } from '../srs/scheduler';
-import type { CountryId } from '../types';
+import { migrateCardV1, migrateLogV1, migrateMetaV1, migrateSettingsV1 } from './migrations';
 
 /** Bump when the stored shape changes, and add a step to MIGRATIONS. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const DB_NAME = 'earth-learner';
 /** Demo data (?seed=demo) lives in its own database so it never touches real progress. */
 export const DEMO_DB_NAME = 'earth-learner-demo';
@@ -14,13 +14,14 @@ export const DEMO_DB_NAME = 'earth-learner-demo';
 export interface ReviewLogEntry {
   id?: number;
   key: string;
-  countryId: CountryId;
+  layerId: LayerId;
+  itemId: string;
   direction: Direction;
   kind: ItemKind;
   /** ts-fsrs review log (rating, state, due, stability, difficulty, …, review time). */
   log: SrsReviewLog;
   responseMs: number;
-  /** Typed text, or the clicked feature ID ('' for ocean / no answer). */
+  /** Typed text, or the clicked item/feature ID ('' for open sea / no answer). */
   answer: string;
   autoGrade: Grade;
   grade: Grade;
@@ -49,12 +50,32 @@ export interface Dump {
 type UpgradeTx = IDBPTransaction<Schema, StoreNames<Schema>[], 'versionchange'>;
 
 /** MIGRATIONS[v] upgrades a database from version v-1 to v. */
-const MIGRATIONS: Record<number, (db: IDBPDatabase<Schema>, tx: UpgradeTx) => void> = {
+const MIGRATIONS: Record<number, (db: IDBPDatabase<Schema>, tx: UpgradeTx) => void | Promise<void>> = {
   1: (db) => {
     db.createObjectStore('cards', { keyPath: 'key' });
     db.createObjectStore('reviewLog', { keyPath: 'id', autoIncrement: true }).createIndex('byCard', 'key');
     db.createObjectStore('settings');
     db.createObjectStore('meta');
+  },
+  // Phase 3: cards are keyed by layer + item + direction; v1 cards are all countries.
+  2: async (_db, tx) => {
+    const cards = tx.objectStore('cards');
+    const old: unknown[] = await cards.getAll();
+    if (old.length) {
+      await cards.clear();
+      for (const c of old) await cards.put(migrateCardV1(c) as CardRecord);
+    }
+    let cursor = await tx.objectStore('reviewLog').openCursor();
+    while (cursor) {
+      await cursor.update(migrateLogV1(cursor.value) as ReviewLogEntry);
+      cursor = await cursor.continue();
+    }
+    const meta = tx.objectStore('meta');
+    const m: unknown = await meta.get('meta');
+    if (m) await meta.put(migrateMetaV1(m) as MetaRecord, 'meta');
+    const settings = tx.objectStore('settings');
+    const s: unknown = await settings.get('settings');
+    if (s) await settings.put(migrateSettingsV1(s), 'settings');
   },
 };
 
@@ -76,10 +97,10 @@ export interface Store {
   close(): void;
 }
 
-export async function openStore(name = DB_NAME): Promise<Store> {
-  const db = await openDB<Schema>(name, SCHEMA_VERSION, {
-    upgrade(db, oldVersion, newVersion, tx) {
-      for (let v = oldVersion + 1; v <= (newVersion ?? SCHEMA_VERSION); v++) MIGRATIONS[v]?.(db, tx);
+export async function openStore(name = DB_NAME, version = SCHEMA_VERSION): Promise<Store> {
+  const db = await openDB<Schema>(name, version, {
+    async upgrade(db, oldVersion, newVersion, tx) {
+      for (let v = oldVersion + 1; v <= (newVersion ?? version); v++) await MIGRATIONS[v]?.(db, tx);
     },
   });
 

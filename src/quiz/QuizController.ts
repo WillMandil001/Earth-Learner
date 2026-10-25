@@ -1,38 +1,31 @@
+import type { ClickInput, Evaluation, LayerContext, LayerId, LearnLayer, QuestionSpec } from '../learn/layer';
 import type { Settings } from '../settings/schema';
 import type { SettingsStore } from '../settings/store';
-import { buildNameIndex, matchAnswer, type NameIndex } from '../srs/answerMatch';
 import { clock, dayIndex } from '../srs/clock';
 import { autoGrade } from '../srs/grading';
 import {
+  EMPTY_LAYER_DAILY,
   buildQueue,
-  introductionOrder,
   pickNext,
   pickNextAhead,
   type CardRecord,
   type DailyCounters,
+  type LayerDaily,
   type QueueItem,
   type QueueSnapshot,
 } from '../srs/queue';
 import { Scheduler, cardState, type CardState, type Grade, type PreviewItem } from '../srs/scheduler';
 import { SCHEMA_VERSION, type MetaRecord, type Store } from '../storage/db';
-import type { CountryId } from '../types';
-import { resolveClick, type QuizData } from './data';
+import type { LonLat } from '../types';
 
 /** How many cards one "Review ahead" press offers. */
 export const REVIEW_AHEAD_BATCH = 20;
 
-export interface AnswerResult {
-  correct: boolean;
-  /** Typed answer accepted with a spelling slip. */
-  typo: boolean;
-  /** Raw answer: typed text, or the clicked feature ID ('' for ocean / gave up). */
+export interface AnswerResult extends Evaluation {
+  /** Raw answer: typed text, or the clicked feature ID ('' for open sea / gave up). */
   answer: string;
-  /** Locate: the feature clicked (null = ocean or gave up). */
-  clickedId: CountryId | null;
-  /** Locate: border-to-border km between what was clicked and the target. */
-  kmOff: number | null;
-  /** Name: the different country a wrong typed answer matched, if any. */
-  matchedOther: CountryId | null;
+  /** Where on the globe the user clicked (locate questions). */
+  clickLonLat: LonLat | null;
   gaveUp: boolean;
   elapsedMs: number;
 }
@@ -46,10 +39,11 @@ export interface SessionStats {
 
 export type QuizPhase =
   | { name: 'idle' }
-  | { name: 'question'; item: QueueItem }
+  | { name: 'question'; item: QueueItem; spec: QuestionSpec }
   | {
       name: 'reveal';
       item: QueueItem;
+      spec: QuestionSpec;
       result: AnswerResult;
       autoGrade: Grade;
       selected: Grade;
@@ -70,25 +64,25 @@ export interface CardDebugInfo {
 
 interface Deps {
   store: Store;
-  data: QuizData;
   settings: SettingsStore;
-  /** NE LABELRANK, to break distance ties in the introduction order. */
-  labelRank(id: CountryId): number;
+  layers: readonly LearnLayer[];
 }
+
+const NO_ANSWER: Evaluation = { correct: false, typo: false, gradeCap: null, clickedItemId: null, distanceKm: null, matchedItemId: null };
 
 /**
  * The learning loop as an explicit state machine:
  * idle → question → reveal → next question … → summary → idle.
+ * Layer-agnostic: everything about a kind of feature comes from its LearnLayer.
  * UI components render from `phase`; nothing here touches the DOM or the globe.
  */
 export class QuizController {
   private phase: QuizPhase = { name: 'idle' };
   private listeners = new Set<(p: QuizPhase) => void>();
   private readonly scheduler: Scheduler;
+  private readonly byId: ReadonlyMap<LayerId, LearnLayer>;
   private cards = new Map<string, CardRecord>();
-  private daily: DailyCounters = { day: 0, reviewsDone: 0, extraNew: 0 };
-  private order: CountryId[] = [];
-  private names!: NameIndex;
+  private daily: DailyCounters = { day: 0, layers: {} };
   private mode: SessionMode = 'normal';
   private reviewsSinceNew = 0;
   private aheadLeft = 0;
@@ -98,9 +92,9 @@ export class QuizController {
 
   private constructor(private readonly deps: Deps) {
     this.scheduler = new Scheduler(deps.settings.value.fsrs);
-    this.applySettings(deps.settings.value);
+    this.byId = new Map(deps.layers.map((l) => [l.id, l]));
     deps.settings.subscribe((s) => {
-      this.applySettings(s);
+      this.scheduler.configure(s.fsrs);
       this.emit();
     });
   }
@@ -115,7 +109,7 @@ export class QuizController {
   async reload(): Promise<void> {
     this.cards = await this.deps.store.loadCards();
     const meta = await this.deps.store.loadMeta();
-    this.daily = meta?.daily ?? { day: 0, reviewsDone: 0, extraNew: 0 };
+    this.daily = meta?.daily ?? { day: 0, layers: {} };
     this.phase = { name: 'idle' };
     this.emit();
   }
@@ -128,29 +122,46 @@ export class QuizController {
     return this.deps.settings.value;
   }
 
-  get data(): QuizData {
-    return this.deps.data;
-  }
-
   subscribe(listener: (p: QuizPhase) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
 
+  /** All registered layers. */
+  get layers(): readonly LearnLayer[] {
+    return this.deps.layers;
+  }
+
+  layer(id: LayerId): LearnLayer {
+    return this.byId.get(id)!;
+  }
+
+  /** Layers a session draws from: enabled, and matching the layer filter. */
+  activeLayers(settings = this.settings): LearnLayer[] {
+    const filter = settings.global.layerFilter;
+    return this.deps.layers.filter((l) => l.enabled(settings) && (filter === 'all' || filter === l.id));
+  }
+
+  /** Read-only card states (for layers' prerequisite checks and debug tools). */
+  get cardRecords(): ReadonlyMap<string, CardRecord> {
+    return this.cards;
+  }
+
   /** Today's queue (counts for the start screen, pause state…). */
   snapshot(now = clock.now()): QueueSnapshot {
+    const ctx: LayerContext = { settings: this.settings, cards: this.cards };
     return buildQueue({
       now,
       cards: this.cards,
-      settings: this.settings.learning,
-      order: this.order,
+      layers: this.activeLayers().map((l) => l.queueConfig(ctx)),
       daily: this.today(now),
+      dayStartHour: this.settings.global.dayStartHour,
       retrievability: (c, t) => this.scheduler.retrievability(c, t),
     });
   }
 
-  displayName(id: CountryId): string {
-    return this.names.display.get(id) ?? id;
+  displayName(item: { layerId: LayerId; itemId: string }): string {
+    return this.layer(item.layerId).displayName(item.itemId);
   }
 
   // ---- Session flow -----------------------------------------------------------
@@ -163,61 +174,40 @@ export class QuizController {
     this.advance();
   }
 
-  /** One extra batch of new countries beyond today's limit, then continue. */
+  /** One extra batch of new items (per active layer) beyond today's limit, then continue. */
   async learnMore(): Promise<void> {
     const now = clock.now();
-    this.daily = { ...this.today(now), extraNew: this.today(now).extraNew + this.settings.learning.newPerDay };
+    const daily = this.today(now);
+    const layers = { ...daily.layers };
+    for (const l of this.activeLayers()) {
+      const c = layers[l.id] ?? EMPTY_LAYER_DAILY;
+      layers[l.id] = { ...c, extraNew: c.extraNew + this.settings.layers[l.id].newPerDay };
+    }
+    this.daily = { ...daily, layers };
     await this.deps.store.saveMeta(this.meta());
     this.start('normal');
   }
 
-  /** Locate answer: the feature clicked on the globe (null = ocean). */
-  answerLocate(clickedId: CountryId | null): void {
-    if (this.phase.name !== 'question' || this.phase.item.direction !== 'locate') return;
-    const target = this.phase.item.countryId;
-    const resolved = resolveClick(this.deps.data, this.settings.learning.scope, clickedId);
-    const correct = resolved === target;
-    const km = clickedId && !correct ? this.deps.data.distances.get(clickedId, target) : NaN;
-    this.reveal({
-      correct,
-      typo: false,
-      answer: clickedId ?? '',
-      clickedId,
-      kmOff: Number.isNaN(km) ? null : km,
-      matchedOther: null,
-      gaveUp: false,
-      elapsedMs: performance.now() - this.shownAt,
-    });
+  /** Locate answer: what was clicked on the globe. */
+  answerClick(click: ClickInput): void {
+    const p = this.phase;
+    if (p.name !== 'question' || p.spec.answer !== 'click') return;
+    const ev = this.layer(p.item.layerId).evaluateClick(p.item.itemId, click, this.settings);
+    this.reveal({ ...ev, answer: ev.clickedItemId ?? '', clickLonLat: click.lonLat, gaveUp: false, elapsedMs: this.elapsed() });
   }
 
-  answerName(text: string): void {
-    if (this.phase.name !== 'question' || this.phase.item.direction !== 'name') return;
-    const m = matchAnswer(this.names, this.phase.item.countryId, text, this.settings.grading.typoTolerance);
-    this.reveal({
-      correct: m.kind === 'exact' || m.kind === 'typo',
-      typo: m.kind === 'typo',
-      answer: text,
-      clickedId: null,
-      kmOff: null,
-      matchedOther: m.kind === 'wrong' ? m.other : null,
-      gaveUp: m.kind === 'empty',
-      elapsedMs: performance.now() - this.shownAt,
-    });
+  /** Typed answer. */
+  answerTyped(text: string): void {
+    const p = this.phase;
+    if (p.name !== 'question' || p.spec.answer !== 'type') return;
+    const ev = this.layer(p.item.layerId).evaluateTyped(p.item.itemId, p.item.direction, text, this.settings);
+    this.reveal({ ...ev, answer: text, clickLonLat: null, gaveUp: !text.trim(), elapsedMs: this.elapsed() });
   }
 
   /** "I don't know": graded Again. */
   giveUp(): void {
     if (this.phase.name !== 'question') return;
-    this.reveal({
-      correct: false,
-      typo: false,
-      answer: '',
-      clickedId: null,
-      kmOff: null,
-      matchedOther: null,
-      gaveUp: true,
-      elapsedMs: performance.now() - this.shownAt,
-    });
+    this.reveal({ ...NO_ANSWER, answer: '', clickLonLat: null, gaveUp: true, elapsedMs: this.elapsed() });
   }
 
   /** Change the selected grade on the reveal screen (not committed until accept). */
@@ -232,18 +222,24 @@ export class QuizController {
     const p = this.phase;
     if (p.name !== 'reveal') return;
     const now = clock.now();
-    const today = dayIndex(now, this.settings.learning.dayStartHour);
-    const prev = this.cards.get(p.item.key);
+    const today = dayIndex(now, this.settings.global.dayStartHour);
+    const { item } = p;
+    const prev = this.cards.get(item.key);
     const out = this.scheduler.review(prev?.card ?? this.scheduler.newCard(now), now, p.selected);
     const rec: CardRecord = {
-      key: p.item.key,
-      countryId: p.item.countryId,
-      direction: p.item.direction,
+      key: item.key,
+      layerId: item.layerId,
+      itemId: item.itemId,
+      direction: item.direction,
       card: out.card,
       introducedDay: prev?.introducedDay ?? today,
     };
     const daily = this.today(now);
-    this.daily = { ...daily, reviewsDone: daily.reviewsDone + (p.item.kind === 'review' ? 1 : 0) };
+    const counters: LayerDaily = daily.layers[item.layerId] ?? EMPTY_LAYER_DAILY;
+    this.daily = {
+      ...daily,
+      layers: { ...daily.layers, [item.layerId]: { ...counters, reviewsDone: counters.reviewsDone + (item.kind === 'review' ? 1 : 0) } },
+    };
     this.cards.set(rec.key, rec);
     // Mark the phase as committed before awaiting, so a second keypress can't double-grade.
     this.phase = { name: 'idle' };
@@ -251,9 +247,10 @@ export class QuizController {
       rec,
       {
         key: rec.key,
-        countryId: rec.countryId,
+        layerId: rec.layerId,
+        itemId: rec.itemId,
         direction: rec.direction,
-        kind: p.item.kind,
+        kind: item.kind,
         log: out.log,
         responseMs: Math.round(p.result.elapsedMs),
         answer: p.result.answer,
@@ -264,9 +261,9 @@ export class QuizController {
     );
     this.stats.reviewed++;
     if (p.result.correct) this.stats.correct++;
-    if (p.item.kind === 'new') this.reviewsSinceNew = 0;
-    else if (p.item.kind === 'review') this.reviewsSinceNew++;
-    if (this.mode === 'ahead' && p.item.kind === 'ahead') this.aheadLeft--;
+    if (item.kind === 'new') this.reviewsSinceNew = 0;
+    else if (item.kind === 'review') this.reviewsSinceNew++;
+    if (this.mode === 'ahead' && item.kind === 'ahead') this.aheadLeft--;
     this.advance();
   }
 
@@ -282,29 +279,25 @@ export class QuizController {
     const p = this.phase;
     if (p.name !== 'question' && p.name !== 'reveal') return null;
     const rec = this.cards.get(p.item.key);
-    const now = clock.now();
     return {
       key: p.item.key,
       state: rec ? cardState(rec.card) : 'new',
       stability: rec?.card.stability ?? 0,
       difficulty: rec?.card.difficulty ?? 0,
-      retrievability: rec ? this.scheduler.retrievability(rec.card, now) : 0,
+      retrievability: rec ? this.scheduler.retrievability(rec.card, clock.now()) : 0,
       due: rec ? new Date(rec.card.due) : null,
     };
   }
 
   // ---- Internals -------------------------------------------------------------------
 
-  private applySettings(s: Settings): void {
-    this.scheduler.configure(s.fsrs);
-    const scope = this.deps.data.scopes[s.learning.scope];
-    this.order = introductionOrder(s.learning.homeCountry, scope, (a, b) => this.deps.data.distances.get(a, b), this.deps.labelRank);
-    this.names = buildNameIndex(this.deps.data.names, scope);
+  private elapsed(): number {
+    return performance.now() - this.shownAt;
   }
 
   private today(now: Date): DailyCounters {
-    const day = dayIndex(now, this.settings.learning.dayStartHour);
-    if (this.daily.day !== day) this.daily = { day, reviewsDone: 0, extraNew: 0 };
+    const day = dayIndex(now, this.settings.global.dayStartHour);
+    if (this.daily.day !== day) this.daily = { day, layers: {} };
     return this.daily;
   }
 
@@ -320,17 +313,14 @@ export class QuizController {
         ? this.aheadLeft > 0
           ? pickNextAhead(q)
           : (q.learningNow[0] ?? null)
-        : pickNext(q, { reviewsSinceNew: this.reviewsSinceNew }, now, this.settings.learning.learnAheadMinutes);
+        : pickNext(q, { reviewsSinceNew: this.reviewsSinceNew }, now, this.settings.global.learnAheadMinutes);
     if (!next) {
       this.phase = { name: 'summary', stats: { ...this.stats, endedAt: Date.now() }, mode: this.mode };
       this.emit();
       return;
     }
-    this.ask(next);
-  }
-
-  private ask(item: QueueItem): void {
-    this.phase = { name: 'question', item };
+    const spec = this.layer(next.layerId).question(next.itemId, next.direction, this.settings);
+    this.phase = { name: 'question', item: next, spec };
     this.shownAt = performance.now();
     this.emit();
   }
@@ -339,12 +329,13 @@ export class QuizController {
     const p = this.phase;
     if (p.name !== 'question') return;
     const now = clock.now();
-    const thresholds = this.settings.grading[p.item.direction];
-    const grade = autoGrade({ correct: result.correct, typo: result.typo, elapsedMs: result.elapsedMs, thresholds });
+    const { thresholds } = this.layer(p.item.layerId).grading(p.item.direction, this.settings);
+    const grade = autoGrade({ correct: result.correct, typo: result.typo, cap: result.gradeCap, elapsedMs: result.elapsedMs, thresholds });
     const card = this.cards.get(p.item.key)?.card ?? this.scheduler.newCard(now);
     this.phase = {
       name: 'reveal',
       item: p.item,
+      spec: p.spec,
       result,
       autoGrade: grade,
       selected: grade,

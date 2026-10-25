@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { CountryLayer } from '../src/layers/country/countryLayer';
 import { QuizController } from '../src/quiz/QuizController';
 import { SettingsStore } from '../src/settings/store';
 import { DAY, clock } from '../src/srs/clock';
@@ -16,7 +17,7 @@ beforeEach(async () => {
   clock.set(new Date(2026, 0, 10, 12, 0));
   store = await openStore('quiz-test');
   settings = await SettingsStore.load(store, new Set(data.scopes.sovereign));
-  quiz = await QuizController.create({ store, data, settings, labelRank: (id) => meta.get(id)!.labelRank });
+  quiz = await QuizController.create({ store, settings, layers: [new CountryLayer(data, meta)] });
 });
 
 afterEach(async () => {
@@ -26,6 +27,7 @@ afterEach(async () => {
 });
 
 const phase = () => quiz.state;
+const click = (countryId: string | null) => quiz.answerClick({ lonLat: null, countryId, cityId: null });
 const item = () => {
   const p = quiz.state;
   if (p.name !== 'question' && p.name !== 'reveal') throw new Error(`no item in ${p.name}`);
@@ -36,33 +38,33 @@ describe('QuizController', () => {
   it('starts straight away with a locate question for the home country', async () => {
     expect(quiz.snapshot().counts).toEqual({ new: 5, learning: 0, due: 0 });
     quiz.start();
-    expect(phase()).toMatchObject({ name: 'question', item: { countryId: 'GBR', direction: 'locate' } });
-    quiz.answerLocate('GBR');
+    expect(phase()).toMatchObject({ name: 'question', item: { itemId: 'GBR', direction: 'locate' } });
+    click('GBR');
     const p = phase();
     if (p.name !== 'reveal') throw new Error();
     expect(p.result.correct).toBe(true);
     expect(p.selected).toBe(p.autoGrade);
     expect(Object.keys(p.preview)).toHaveLength(4);
     await quiz.accept();
-    expect(phase()).toMatchObject({ name: 'question', item: { countryId: 'IRL', direction: 'locate' } });
-    expect((await store.loadCards()).get('GBR:locate')).toBeTruthy();
-    expect((await store.dump()).reviewLog[0]).toMatchObject({ key: 'GBR:locate', answer: 'GBR', grade: p.selected });
+    expect(phase()).toMatchObject({ name: 'question', item: { itemId: 'IRL', direction: 'locate' } });
+    expect((await store.loadCards()).get('country:GBR:locate')).toBeTruthy();
+    expect((await store.dump()).reviewLog[0]).toMatchObject({ key: 'country:GBR:locate', answer: 'GBR', grade: p.selected });
   });
 
   it('wrong clicks grade Again and report the distance; merges count as the parent', async () => {
-    await settings.set('learning.homeCountry', 'SOM');
+    await settings.set('global.homeCountry', 'SOM');
     quiz.start();
-    expect(item().countryId).toBe('SOM');
-    quiz.answerLocate('SOL'); // Somaliland counts as Somalia
+    expect(item().itemId).toBe('SOM');
+    click('SOL'); // Somaliland counts as Somalia
     expect(phase()).toMatchObject({ name: 'reveal', result: { correct: true } });
     await quiz.accept();
-    const target = item().countryId;
-    quiz.answerLocate('NZL');
+    const target = item().itemId;
+    click('NZL');
     const p = phase();
     if (p.name !== 'reveal') throw new Error();
     expect(p.result.correct).toBe(false);
     expect(p.autoGrade).toBe('again');
-    expect(p.result.kmOff).toBe(data.distances.get('NZL', target));
+    expect(p.result.distanceKm).toBe(data.distances.get('NZL', target));
     quiz.select('hard'); // override
     await quiz.accept();
     expect((await store.dump()).reviewLog.at(-1)).toMatchObject({ autoGrade: 'again', grade: 'hard', answer: 'NZL' });
@@ -70,28 +72,28 @@ describe('QuizController', () => {
 
   it('ocean clicks are wrong with no distance', () => {
     quiz.start();
-    quiz.answerLocate(null);
-    expect(phase()).toMatchObject({ name: 'reveal', autoGrade: 'again', result: { kmOff: null, clickedId: null } });
+    click(null);
+    expect(phase()).toMatchObject({ name: 'reveal', autoGrade: 'again', result: { distanceKm: null, clickedItemId: null } });
   });
 
   it('runs a day: name cards follow the next day; typed answers are matched', async () => {
-    await settings.set('learning.newPerDay', 2);
+    await settings.set('layers.country.newPerDay', 2);
     quiz.start();
     for (let i = 0; i < 2; i++) {
-      quiz.answerLocate(item().countryId);
+      click(item().itemId);
       quiz.select('easy');
       await quiz.accept();
     }
     expect(phase().name).toBe('summary');
     clock.advance(DAY);
-    expect(quiz.snapshot().newItems.map((i) => i.key)).toEqual(['GBR:name', 'IRL:name', ...quiz.snapshot().newItems.slice(2).map((i) => i.key)]);
+    expect(quiz.snapshot().newItems.map((i) => i.key)).toEqual(['country:GBR:name', 'country:IRL:name', ...quiz.snapshot().newItems.slice(2).map((i) => i.key)]);
     quiz.start();
-    expect(phase()).toMatchObject({ name: 'question', item: { key: 'GBR:name' } });
-    quiz.answerName('great britain');
+    expect(phase()).toMatchObject({ name: 'question', item: { key: 'country:GBR:name' } });
+    quiz.answerTyped('great britain');
     expect(phase()).toMatchObject({ name: 'reveal', result: { correct: true, typo: false } });
     await quiz.accept();
-    expect(item().key).toBe('IRL:name');
-    quiz.answerName('Irland');
+    expect(item().key).toBe('country:IRL:name');
+    quiz.answerTyped('Irland');
     expect(phase()).toMatchObject({ name: 'reveal', autoGrade: 'hard', result: { correct: true, typo: true } });
   });
 
@@ -104,16 +106,26 @@ describe('QuizController', () => {
   });
 
   it('learn more grants another batch', async () => {
-    await settings.set('learning.newPerDay', 1);
+    await settings.set('layers.country.newPerDay', 1);
     quiz.start();
-    quiz.answerLocate('GBR');
+    click('GBR');
     await quiz.accept();
     // Only GBR's learning step remains; strict learn-ahead ends the session.
-    await settings.set('learning.learnAheadMinutes', 0);
+    await settings.set('global.learnAheadMinutes', 0);
     quiz.stop();
     quiz.start();
     expect(phase().name).toBe('summary');
     await quiz.learnMore();
-    expect(phase()).toMatchObject({ name: 'question', item: { countryId: 'IRL', direction: 'locate' } });
+    expect(phase()).toMatchObject({ name: 'question', item: { itemId: 'IRL', direction: 'locate' } });
+  });
+
+  it('the layer filter limits a session to one layer', async () => {
+    await settings.set('global.layerFilter', 'city');
+    expect(quiz.activeLayers()).toEqual([]);
+    expect(quiz.snapshot().counts).toEqual({ new: 0, learning: 0, due: 0 });
+    await settings.set('global.layerFilter', 'country');
+    expect(quiz.snapshot().counts.new).toBe(5);
+    await settings.set('layers.country.enabled', false);
+    expect(quiz.activeLayers()).toEqual([]);
   });
 });

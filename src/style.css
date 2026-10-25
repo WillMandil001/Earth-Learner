@@ -673,3 +673,93 @@ button:disabled {
   border-radius: 10px;
   background: #4a1c1c;
 }
+
+/* ---- Map markers (quiz targets, clicks) ----------------------------------- */
+
+.map-markers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.map-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+
+.map-marker[hidden] {
+  display: none;
+}
+
+.map-marker::before,
+.map-marker::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.map-marker.pulse::before,
+.map-marker.answer::before {
+  width: 12px;
+  height: 12px;
+  background: #ffcf40;
+  border: 2px solid #1b1405;
+}
+
+.map-marker.pulse::after,
+.map-marker.answer::after {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffcf40;
+  animation: marker-pulse 1.4s ease-out infinite;
+}
+
+.map-marker.answer::before {
+  background: #5fbf77;
+}
+
+.map-marker.answer::after {
+  border-color: #5fbf77;
+}
+
+.map-marker.click::before {
+  width: 14px;
+  height: 14px;
+  border-radius: 0;
+  background:
+    linear-gradient(45deg, transparent 43%, #ef8a84 43% 57%, transparent 57%),
+    linear-gradient(-45deg, transparent 43%, #ef8a84 43% 57%, transparent 57%);
+  filter: drop-shadow(0 0 2px #000);
+}
+
+@keyframes marker-pulse {
+  from {
+    width: 14px;
+    height: 14px;
+    opacity: 1;
+  }
+  to {
+    width: 46px;
+    height: 46px;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-marker::after {
+    animation: none;
+  }
+}
+
+.quiz-header .layer-name {
+  color: var(--muted);
+}
+
+.layer-breakdown {
+  font-size: 13px;
+}

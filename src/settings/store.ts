@@ -14,7 +14,7 @@ export class SettingsStore {
 
   static async load(store: Store, countries: ReadonlySet<CountryId>): Promise<SettingsStore> {
     const { settings } = normaliseSettings(await store.loadSettings());
-    if (!countries.has(settings.learning.homeCountry)) settings.learning.homeCountry = [...countries][0]!;
+    if (!countries.has(settings.global.homeCountry)) settings.global.homeCountry = [...countries][0]!;
     return new SettingsStore(store, settings, countries);
   }
 

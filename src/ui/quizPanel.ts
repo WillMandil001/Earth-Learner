@@ -1,17 +1,20 @@
+import type { TextPart } from '../learn/layer';
 import type { QuizController, QuizPhase } from '../quiz/QuizController';
 import type { SettingsStore } from '../settings/store';
-import { GRADES, type Grade } from '../srs/scheduler';
 import type { QueueItem } from '../srs/queue';
-import type { CountryId, CountryMeta } from '../types';
+import { GRADES, type Grade } from '../srs/scheduler';
 import { h } from './dom';
 import { renderSessionSummary } from './sessionSummary';
 import { renderStartScreen } from './startScreen';
 
 const GRADE_LABEL: Record<Grade, string> = { again: 'Again', hard: 'Hard', good: 'Good', easy: 'Easy' };
 
+type Item = Extract<QuizPhase, { item: unknown }>;
+
 /**
  * Bottom-centre Learn panel. Renders the start screen, the current question
- * phase or the session summary from QuizController state.
+ * phase or the session summary from QuizController state. Question wording
+ * comes from the item's layer.
  */
 export class QuizPanel {
   private timer = 0;
@@ -21,7 +24,6 @@ export class QuizPanel {
     private readonly el: HTMLElement,
     private readonly quiz: QuizController,
     private readonly settings: SettingsStore,
-    private readonly meta: ReadonlyMap<CountryId, CountryMeta>,
     private readonly onExplore: () => void,
   ) {
     quiz.subscribe(() => this.render());
@@ -53,17 +55,17 @@ export class QuizPanel {
       case 'summary':
         return renderSessionSummary(this.quiz, p.stats, this.onExplore);
       case 'question':
-        return this.frame(p, p.item.direction === 'locate' ? this.locate(p.item) : this.name(p.item));
+        return this.frame(p, this.question(p));
       case 'reveal':
         return this.frame(p, this.reveal(p));
     }
   }
 
   /** Header (direction, progress, timer, stop) around a phase body. */
-  private frame(p: Extract<QuizPhase, { item: unknown }>, body: HTMLElement): HTMLElement {
+  private frame(p: Item, body: HTMLElement): HTMLElement {
     const { counts } = this.quiz.snapshot();
     const timer = h('span', { class: 'timer' });
-    if (p.name === 'question' && this.settings.value.display.showTimer) {
+    if (p.name === 'question' && this.settings.value.global.showTimer) {
       const started = performance.now();
       const tick = () => (timer.textContent = `${Math.floor((performance.now() - started) / 1000)}s`);
       tick();
@@ -75,7 +77,8 @@ export class QuizPanel {
       h(
         'div',
         { class: 'quiz-header' },
-        h('span', { class: `chip direction ${p.item.direction}` }, p.item.direction === 'locate' ? 'Find it' : 'Name it'),
+        h('span', { class: `chip direction ${p.item.direction}` }, p.spec.chip),
+        this.quiz.activeLayers().length > 1 && h('span', { class: 'layer-name' }, this.quiz.layer(p.item.layerId).name),
         h(
           'span',
           { class: 'progress', title: 'New · Learning · Due' },
@@ -92,18 +95,19 @@ export class QuizPanel {
     );
   }
 
-  private locate(item: QueueItem): HTMLElement {
-    return h(
-      'div',
-      { class: 'quiz-body' },
-      newTag(item),
-      h('p', { class: 'prompt' }, 'Find: ', h('strong', {}, this.quiz.displayName(item.countryId))),
-      h('p', { class: 'muted' }, 'Click it on the globe. Drag to rotate, scroll to zoom.'),
-      h('div', { class: 'actions' }, h('button', { onclick: () => this.quiz.giveUp() }, "I don't know")),
-    );
-  }
-
-  private name(item: QueueItem): HTMLElement {
+  private question(p: Extract<QuizPhase, { name: 'question' }>): HTMLElement {
+    const prompt = h('p', { class: 'prompt' }, ...parts(p.spec.prompt));
+    const tag = this.newTag(p.item);
+    if (p.spec.answer === 'click') {
+      return h(
+        'div',
+        { class: 'quiz-body' },
+        tag,
+        prompt,
+        h('p', { class: 'muted' }, 'Click it on the globe. Drag to rotate, scroll to zoom.'),
+        h('div', { class: 'actions' }, h('button', { onclick: () => this.quiz.giveUp() }, "I don't know")),
+      );
+    }
     const input = h('input', {
       class: 'answer',
       type: 'text',
@@ -111,10 +115,10 @@ export class QuizPanel {
       autocorrect: 'off',
       autocapitalize: 'off',
       spellcheck: 'false',
-      'aria-label': 'Country name',
-      placeholder: 'Type the country name',
+      'aria-label': 'Answer',
+      placeholder: 'Type the name',
     });
-    const submit = () => this.quiz.answerName(input.value);
+    const submit = () => this.quiz.answerTyped(input.value);
     input.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter') return;
       e.preventDefault();
@@ -125,47 +129,22 @@ export class QuizPanel {
     return h(
       'div',
       { class: 'quiz-body' },
-      newTag(item),
-      h('p', { class: 'prompt' }, 'Name the highlighted country'),
+      tag,
+      prompt,
       h('div', { class: 'answer-row' }, input, h('button', { class: 'primary', onclick: submit }, 'Answer')),
       h('div', { class: 'actions' }, h('button', { onclick: () => this.quiz.giveUp() }, "I don't know")),
     );
   }
 
+  /** First-ever question about an item: say so, without showing where it is. */
+  private newTag(item: QueueItem): HTMLElement | null {
+    return item.firstForItem ? h('p', { class: 'eyebrow' }, `New ${this.quiz.layer(item.layerId).noun}`) : null;
+  }
+
   private reveal(p: Extract<QuizPhase, { name: 'reveal' }>): HTMLElement {
-    const target = this.quiz.displayName(p.item.countryId);
     const r = p.result;
-    let verdict: string;
-    let detail: (string | HTMLElement)[] = [];
-    if (r.correct) {
-      verdict = r.typo ? 'Correct (spelling slip)' : 'Correct';
-      if (r.typo) detail = ['Spelled: ', h('strong', {}, target)];
-      else if (p.item.direction === 'name') detail = [h('strong', {}, target)];
-    } else {
-      verdict = r.gaveUp ? 'Not answered' : 'Wrong';
-      if (p.item.direction === 'locate') {
-        const clicked = r.clickedId ? (this.meta.get(r.clickedId)?.name ?? r.clickedId) : null;
-        detail = [
-          'This is ',
-          h('strong', {}, target),
-          '. ',
-          clicked
-            ? `You clicked ${clicked}${
-                r.kmOff === null ? '.' : r.kmOff === 0 ? ', which borders it.' : `: you were ${r.kmOff.toLocaleString()} km off.`
-              }`
-            : r.gaveUp
-              ? ''
-              : 'You clicked the sea.',
-        ];
-      } else {
-        detail = [
-          'It is ',
-          h('strong', {}, target),
-          '.',
-          r.matchedOther ? ` "${r.answer.trim()}" is ${this.quiz.displayName(r.matchedOther)}.` : '',
-        ];
-      }
-    }
+    const verdict = r.correct ? (r.typo ? 'Correct (spelling slip)' : 'Correct') : r.gaveUp ? 'Not answered' : 'Wrong';
+    const detail = this.quiz.layer(p.item.layerId).revealDetail(p.item.itemId, p.item.direction, r).filter(Boolean);
     const buttons = GRADES.map((g, i) =>
       h(
         'button',
@@ -186,7 +165,7 @@ export class QuizPanel {
       'div',
       { class: 'quiz-body' },
       h('p', { class: `verdict ${r.correct ? 'correct' : 'wrong'}` }, verdict),
-      detail.length > 0 && h('p', { class: 'detail' }, ...detail),
+      detail.length > 0 && h('p', { class: 'detail' }, ...parts(detail)),
       h('div', { class: 'grades' }, ...buttons),
       h('p', { class: 'hint' }, `Suggested: ${GRADE_LABEL[p.autoGrade]}. Enter accepts, 1–4 choose.`),
     );
@@ -197,7 +176,6 @@ export class QuizPanel {
   }
 }
 
-/** First-ever question about a country: say so, without showing where it is. */
-function newTag(item: QueueItem): HTMLElement | null {
-  return item.firstForCountry ? h('p', { class: 'eyebrow' }, 'New country') : null;
+function parts(text: TextPart[]): (string | HTMLElement)[] {
+  return text.map((t) => (typeof t === 'string' ? t : h('strong', {}, t.strong)));
 }

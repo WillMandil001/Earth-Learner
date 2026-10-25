@@ -1,6 +1,10 @@
-import type { CountryNames } from '../quiz/data';
 import type { TypoTolerance } from '../settings/schema';
-import type { CountryId } from '../types';
+
+/** Display name plus every accepted answer (raw; normalised at match time). */
+export interface NameEntry {
+  display: string;
+  accepted: readonly string[];
+}
 
 /**
  * Canonical form of a typed or stored name: lowercase, no diacritics or
@@ -52,18 +56,19 @@ export function typoAllowance(len: number, tolerance: TypoTolerance): number {
   return len < 4 ? 0 : len < 8 ? 1 : 2;
 }
 
+/** Normalised names of a set of items (countries, cities…), keyed by item ID. */
 export interface NameIndex {
-  /** Normalised accepted names per country. */
-  keys: Map<CountryId, string[]>;
-  /** Normalised name → countries that accept it (more than one = a data error). */
-  owners: Map<string, CountryId[]>;
-  display: Map<CountryId, string>;
+  /** Normalised accepted names per item. */
+  keys: Map<string, string[]>;
+  /** Normalised name → items that accept it. */
+  owners: Map<string, string[]>;
+  display: Map<string, string>;
 }
 
-export function buildNameIndex(names: Record<CountryId, CountryNames>, scope: readonly CountryId[]): NameIndex {
-  const keys = new Map<CountryId, string[]>();
-  const owners = new Map<string, CountryId[]>();
-  const display = new Map<CountryId, string>();
+export function buildNameIndex(names: Readonly<Record<string, NameEntry>>, scope: Iterable<string>): NameIndex {
+  const keys = new Map<string, string[]>();
+  const owners = new Map<string, string[]>();
+  const display = new Map<string, string>();
   for (const id of scope) {
     const n = names[id];
     if (!n) continue;
@@ -75,8 +80,8 @@ export function buildNameIndex(names: Record<CountryId, CountryNames>, scope: re
   return { keys, owners, display };
 }
 
-/** Normalised names claimed by more than one country. */
-export function nameCollisions(index: NameIndex): [string, CountryId[]][] {
+/** Normalised names claimed by more than one item. */
+export function nameCollisions(index: NameIndex): [string, string[]][] {
   return [...index.owners].filter(([, ids]) => ids.length > 1);
 }
 
@@ -85,27 +90,38 @@ export type MatchResult =
   | { kind: 'exact' }
   /** Accepted with a spelling slip; the UI shows the correct spelling. */
   | { kind: 'typo'; distance: number }
-  /** `other` is the different country the answer matched, if any. */
-  | { kind: 'wrong'; other: CountryId | null };
+  /** `other` is the different item the answer matched, if any. */
+  | { kind: 'wrong'; other: string | null };
 
 /**
  * Judge a typed answer for `target`. Exact names win. Otherwise a near-miss is
  * accepted only if it is within the typo allowance of the target and of no
- * other country (so "Nigeria" never passes for Niger, nor "Austria" for Australia).
+ * other candidate (so "Nigeria" never passes for Niger, nor "Austria" for Australia).
+ *
+ * `candidates` limits which other items count for the ambiguity guard (e.g. only
+ * cities in the same country and its neighbours); by default every indexed item does.
  */
-export function matchAnswer(index: NameIndex, target: CountryId, text: string, tolerance: TypoTolerance): MatchResult {
+export function matchAnswer(
+  index: NameIndex,
+  target: string,
+  text: string,
+  tolerance: TypoTolerance,
+  candidates?: ReadonlySet<string>,
+): MatchResult {
   const key = normaliseName(text);
   if (!key) return { kind: 'empty' };
-  const exactOwners = index.owners.get(key) ?? [];
+  const counts = (id: string) => id === target || !candidates || candidates.has(id);
+  const exactOwners = (index.owners.get(key) ?? []).filter(counts);
   if (exactOwners.includes(target)) return { kind: 'exact' };
   if (exactOwners.length) return { kind: 'wrong', other: exactOwners[0]! };
 
   const max = typoAllowance(key.length, tolerance);
   if (max === 0) return { kind: 'wrong', other: null };
   let dTarget = max + 1;
-  let other: CountryId | null = null;
+  let other: string | null = null;
   let dOther = max + 1;
   for (const [id, ks] of index.keys) {
+    if (!counts(id)) continue;
     for (const k of ks) {
       const d = editDistance(key, k, max);
       if (id === target) dTarget = Math.min(dTarget, d);

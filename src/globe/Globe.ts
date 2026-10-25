@@ -1,4 +1,4 @@
-import type { GeoProjection } from 'd3-geo';
+import { geoDistance, type GeoProjection } from 'd3-geo';
 import { DEVICE_PIXEL_RATIO_CAP, HOME_CONTEXT_FACTOR, HOME_COUNTRY, LOD } from '../config';
 import type { Camera, CountryData, CountryId, HighlightStyle, LabelMode, Lod, LonLat } from '../types';
 import { flightDuration, flightPath } from './animation';
@@ -248,6 +248,18 @@ export class Globe {
 
   removeLayer(id: string): void {
     this.renderer.removeLayer(id);
+    this.invalidate();
+  }
+
+  /** Screen position (CSS px, container-relative) of a point, or null if it is on the far side. */
+  project(lonLat: LonLat): [number, number] | null {
+    if (geoDistance([this.camera.lon, this.camera.lat], lonLat) > Math.PI / 2) return null;
+    const p = updateProjection(this.projection, this.camera, this.viewport)(lonLat);
+    return p ? [p[0], p[1]] : null;
+  }
+
+  /** Redraw after an added layer's own state changed. */
+  redraw(): void {
     this.invalidate();
   }
 

@@ -18,7 +18,7 @@ export function renderSessionSummary(quiz: QuizController, stats: SessionStats, 
         stat('Time', formatDuration(stats.endedAt - stats.startedAt)),
       ),
     q.counts.learning > 0 && h('p', { class: 'muted' }, `${q.counts.learning} card(s) in short-term learning will be due again soon.`),
-    q.pausedNew && h('p', { class: 'notice' }, 'New countries are paused until due reviews are under the threshold.'),
+    q.pausedNew && h('p', { class: 'notice' }, 'Some new items are paused until due reviews are under the threshold.'),
     h(
       'div',
       { class: 'actions' },

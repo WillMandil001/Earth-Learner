@@ -9,13 +9,18 @@ import type { CountryId } from '../types';
 import { h } from './dom';
 
 const SECTIONS: { id: FieldSpec['section']; title: string; note?: string }[] = [
-  { id: 'learning', title: 'Learning' },
+  { id: 'global', title: 'General' },
   {
     id: 'scheduler',
     title: 'Scheduler (FSRS)',
-    note: 'Changes apply to future reviews. Cards already scheduled keep their due dates.',
+    note: 'Shared by all layers. Changes apply to future reviews; cards already scheduled keep their due dates.',
   },
-  { id: 'grading', title: 'Grading' },
+  { id: 'layer:country', title: 'Countries' },
+  {
+    id: 'layer:city',
+    title: 'Cities',
+    note: 'Changing tiers or thresholds never deletes progress: cards outside the active set are just not scheduled.',
+  },
 ];
 
 const RESET_WORD = 'reset';

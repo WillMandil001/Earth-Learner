@@ -1,18 +1,19 @@
 import './style.css';
 import { loadCountries } from './data/loadCountries';
 import { Globe } from './globe/Globe';
+import { CountryLayer } from './layers/country/countryLayer';
 import { QuizController } from './quiz/QuizController';
 import { loadQuizData } from './quiz/data';
 import { generateDemoDump } from './quiz/demoSeed';
 import { QuizGlobeBinding } from './quiz/globeBinding';
 import { SettingsStore } from './settings/store';
 import { clock } from './srs/clock';
-import { introductionOrder } from './srs/queue';
 import { DB_NAME, DEMO_DB_NAME, openStore } from './storage/db';
 import { createControls } from './ui/controls';
 import { DebugHud } from './ui/debugHud';
 import { h } from './ui/dom';
 import { InfoPanel } from './ui/infoPanel';
+import { MapMarkers } from './ui/mapMarkers';
 import { ModeSwitch, type AppMode } from './ui/modeSwitch';
 import { QuizPanel } from './ui/quizPanel';
 import { SettingsPanel } from './ui/settingsPanel';
@@ -29,17 +30,16 @@ async function main(): Promise<void> {
   const demo = new URLSearchParams(location.search).get('seed') === 'demo';
 
   const [data, quizData, store] = await Promise.all([loadCountries(), loadQuizData(), openStore(demo ? DEMO_DB_NAME : DB_NAME)]);
-  const labelRank = (id: string) => data.meta.get(id)?.labelRank ?? 99;
   const settings = await SettingsStore.load(store, new Set(quizData.scopes.sovereign));
+  const countryLayer = new CountryLayer(quizData, data.meta);
   if (demo && (await store.loadCards()).size === 0) {
-    const s = settings.value;
-    const order = introductionOrder(s.learning.homeCountry, quizData.scopes[s.learning.scope], (a, b) => quizData.distances.get(a, b), labelRank);
-    await store.replaceAll(generateDemoDump(clock.now(), order, s));
+    await store.replaceAll(generateDemoDump(clock.now(), countryLayer.introductionOrder(settings.value), settings.value));
   }
-  const quiz = await QuizController.create({ store, data: quizData, settings, labelRank });
+  const quiz = await QuizController.create({ store, settings, layers: [countryLayer] });
 
-  const globe = new Globe(stage, data, { labelMode: 'all', homeCountry: settings.value.learning.homeCountry });
-  const binding = new QuizGlobeBinding(globe, quiz, data.meta);
+  const globe = new Globe(stage, data, { labelMode: 'all', homeCountry: settings.value.global.homeCountry });
+  const markers = new MapMarkers(stage, globe);
+  const binding = new QuizGlobeBinding({ globe, markers }, quiz);
 
   // ---- Overlays ---------------------------------------------------------------
   const tooltip = new Tooltip(app);
@@ -48,7 +48,7 @@ async function main(): Promise<void> {
     settings,
     quiz,
     store,
-    countries: quizData.scopes[settings.value.learning.scope]
+    countries: quizData.scopes[settings.value.layers.country.scope]
       .map((id): [string, string] => [id, quizData.names[id]?.display ?? id])
       .sort((a, b) => a[1].localeCompare(b[1])),
   });
@@ -58,7 +58,7 @@ async function main(): Promise<void> {
   const rightStack = h('div', { class: 'right-stack overlay' });
   app.appendChild(rightStack);
   const quizPanelEl = document.getElementById('quiz-panel')!;
-  const quizPanel = new QuizPanel(quizPanelEl, quiz, settings, data.meta, () => setMode('explore'));
+  const quizPanel = new QuizPanel(quizPanelEl, quiz, settings, () => setMode('explore'));
   const hud = new DebugHud(rightStack, {
     card: () => quiz.currentCard(),
     onTimeTravel: () => quizPanel.render(true),
@@ -109,7 +109,7 @@ async function main(): Promise<void> {
   globe.on('click', (e) => {
     if (mode === 'explore') return select(e.id);
     const p = quiz.state;
-    if (p.name === 'question' && p.item.direction === 'locate') quiz.answerLocate(e.id);
+    if (p.name === 'question' && p.spec.answer === 'click') quiz.answerClick({ lonLat: e.lonLat, countryId: e.id, cityId: null });
   });
   globe.on('dblclick', (e) => {
     if (mode === 'explore' && e.id) void globe.flyToCountry(e.id);
@@ -118,7 +118,7 @@ async function main(): Promise<void> {
 
   quiz.subscribe(() => hud.paint());
   settings.subscribe((s) => {
-    globe.setHomeCountry(s.learning.homeCountry);
+    globe.setHomeCountry(s.global.homeCountry);
     if (quiz.state.name === 'idle' || quiz.state.name === 'summary') quizPanel.render(true);
   });
 

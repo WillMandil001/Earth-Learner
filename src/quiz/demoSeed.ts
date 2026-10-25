@@ -18,14 +18,14 @@ function rng(seed: number): () => number {
 const DEMO_COUNTRIES = 40;
 
 /**
- * A plausible progress history for the first 40 countries in the introduction
+ * A plausible country progress history for the first 40 countries in the introduction
  * order: older countries are well known, recent ones still in learning, and
  * some reviews are overdue. Built by replaying answers through the real scheduler.
  */
 export function generateDemoDump(now: Date, order: readonly CountryId[], settings: Settings): Dump {
   const random = rng(42);
   const scheduler = new Scheduler(settings.fsrs);
-  const h = settings.learning.dayStartHour;
+  const h = settings.global.dayStartHour;
   const pick = (): Grade => {
     const r = random();
     return r < 0.12 ? 'again' : r < 0.27 ? 'hard' : r < 0.85 ? 'good' : 'easy';
@@ -51,8 +51,9 @@ export function generateDemoDump(now: Date, order: readonly CountryId[], setting
         if (introducedDay < 0) introducedDay = dayIndex(t, h);
         const kind: ItemKind = before === 'new' ? 'new' : before === 'review' ? 'review' : 'learning';
         reviewLog.push({
-          key: cardKey(countryId, direction),
-          countryId,
+          key: cardKey('country', countryId, direction),
+          layerId: 'country',
+          itemId: countryId,
           direction,
           kind,
           log: out.log,
@@ -65,14 +66,16 @@ export function generateDemoDump(now: Date, order: readonly CountryId[], setting
         // Next answer when due, a little late on average.
         t = new Date(card.due.getTime() + random() * (cardState(card) === 'review' ? 10 * HOUR : 2 * 60_000));
       }
-      if (introducedDay >= 0) cards.push({ key: cardKey(countryId, direction), countryId, direction, card, introducedDay });
+      if (introducedDay >= 0) {
+        cards.push({ key: cardKey('country', countryId, direction), layerId: 'country', itemId: countryId, direction, card, introducedDay });
+      }
     }
   });
 
   reviewLog.forEach((r, i) => (r.id = i + 1));
   return {
     settings,
-    meta: { schemaVersion: SCHEMA_VERSION, daily: { day: dayIndex(now, h), reviewsDone: 0, extraNew: 0 } },
+    meta: { schemaVersion: SCHEMA_VERSION, daily: { day: dayIndex(now, h), layers: {} } },
     cards,
     reviewLog,
   };
