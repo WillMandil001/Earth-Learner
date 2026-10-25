@@ -1,6 +1,7 @@
 import type { QuizController, QuizPhase } from '../quiz/QuizController';
 import type { SettingsStore } from '../settings/store';
 import { GRADES, type Grade } from '../srs/scheduler';
+import type { QueueItem } from '../srs/queue';
 import type { CountryId, CountryMeta } from '../types';
 import { h } from './dom';
 import { renderSessionSummary } from './sessionSummary';
@@ -52,7 +53,7 @@ export class QuizPanel {
       case 'summary':
         return renderSessionSummary(this.quiz, p.stats, this.onExplore);
       case 'question':
-        return this.frame(p, p.item.direction === 'locate' ? this.locate(p.item.countryId) : this.name());
+        return this.frame(p, p.item.direction === 'locate' ? this.locate(p.item) : this.name(p.item));
       case 'reveal':
         return this.frame(p, this.reveal(p));
     }
@@ -91,17 +92,18 @@ export class QuizPanel {
     );
   }
 
-  private locate(id: CountryId): HTMLElement {
+  private locate(item: QueueItem): HTMLElement {
     return h(
       'div',
       { class: 'quiz-body' },
-      h('p', { class: 'prompt' }, 'Find: ', h('strong', {}, this.quiz.displayName(id))),
+      newTag(item),
+      h('p', { class: 'prompt' }, 'Find: ', h('strong', {}, this.quiz.displayName(item.countryId))),
       h('p', { class: 'muted' }, 'Click it on the globe. Drag to rotate, scroll to zoom.'),
       h('div', { class: 'actions' }, h('button', { onclick: () => this.quiz.giveUp() }, "I don't know")),
     );
   }
 
-  private name(): HTMLElement {
+  private name(item: QueueItem): HTMLElement {
     const input = h('input', {
       class: 'answer',
       type: 'text',
@@ -123,6 +125,7 @@ export class QuizPanel {
     return h(
       'div',
       { class: 'quiz-body' },
+      newTag(item),
       h('p', { class: 'prompt' }, 'Name the highlighted country'),
       h('div', { class: 'answer-row' }, input, h('button', { class: 'primary', onclick: submit }, 'Answer')),
       h('div', { class: 'actions' }, h('button', { onclick: () => this.quiz.giveUp() }, "I don't know")),
@@ -192,4 +195,9 @@ export class QuizPanel {
   private stopTimer(): void {
     clearInterval(this.timer);
   }
+}
+
+/** First-ever question about a country: say so, without showing where it is. */
+function newTag(item: QueueItem): HTMLElement | null {
+  return item.firstForCountry ? h('p', { class: 'eyebrow' }, 'New country') : null;
 }
