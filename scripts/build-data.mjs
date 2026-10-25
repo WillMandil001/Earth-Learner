@@ -161,9 +161,15 @@ function fixLabelPoint(f, point) {
   const k = Math.cos((lat0 * Math.PI) / 180);
   const unwrap = (lon) => lon0 + ((((lon - lon0 + 540) % 360) + 360) % 360) - 180;
   const local = largest.map((ring) => ring.map(([lon, lat]) => [unwrap(lon) * k, lat]));
-  const [x, y] = polylabel(local, 0.01);
+  const xs = local[0].map((p) => p[0]);
+  const ys = local[0].map((p) => p[1]);
+  // Precision relative to the polygon, so microstates (Vatican is ~0.005°) still work.
+  const extent = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  const [x, y] = polylabel(local, Math.min(0.01, extent / 200));
   const lon = ((((x / k + 180) % 360) + 360) % 360) - 180;
-  return [round(lon, 4), round(y, 4)];
+  const anchor = [round(lon, 5), round(y, 5)];
+  if (!geoContains(f, anchor)) throw new Error(`Label anchor for ${f.id} is still outside the country`);
+  return anchor;
 }
 
 // ---- Border-to-border distances ----------------------------------------------

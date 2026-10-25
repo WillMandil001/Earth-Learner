@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildCountryData } from '../src/data/loadCountries';
+import { buildQuizData, type QuizData } from '../src/quiz/data';
 import type { CountryData } from '../src/types';
 
 const dir = join(import.meta.dirname, '..', 'public', 'data');
@@ -16,4 +17,11 @@ export function countryData(): CountryData {
     read('countries-meta.json'),
   );
   return cached;
+}
+
+let quiz: QuizData | null = null;
+
+export function quizData(): QuizData {
+  quiz ??= buildQuizData(read('quiz-data.json'), read('country-distances.json'));
+  return quiz;
 }
