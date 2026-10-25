@@ -28,17 +28,15 @@ afterEach(async () => {
 const phase = () => quiz.state;
 const item = () => {
   const p = quiz.state;
-  if (p.name !== 'intro' && p.name !== 'question' && p.name !== 'reveal') throw new Error(`no item in ${p.name}`);
+  if (p.name !== 'question' && p.name !== 'reveal') throw new Error(`no item in ${p.name}`);
   return p.item;
 };
 
 describe('QuizController', () => {
-  it('starts with the home country: intro, then a locate question', async () => {
+  it('starts straight away with a locate question for the home country', async () => {
     expect(quiz.snapshot().counts).toEqual({ new: 5, learning: 0, due: 0 });
     quiz.start();
-    expect(phase()).toMatchObject({ name: 'intro', item: { countryId: 'GBR', direction: 'locate' } });
-    quiz.continueIntro();
-    expect(phase()).toMatchObject({ name: 'question', item: { key: 'GBR:locate' } });
+    expect(phase()).toMatchObject({ name: 'question', item: { countryId: 'GBR', direction: 'locate' } });
     quiz.answerLocate('GBR');
     const p = phase();
     if (p.name !== 'reveal') throw new Error();
@@ -46,7 +44,7 @@ describe('QuizController', () => {
     expect(p.selected).toBe(p.autoGrade);
     expect(Object.keys(p.preview)).toHaveLength(4);
     await quiz.accept();
-    expect(phase()).toMatchObject({ name: 'intro', item: { countryId: 'IRL' } });
+    expect(phase()).toMatchObject({ name: 'question', item: { countryId: 'IRL', direction: 'locate' } });
     expect((await store.loadCards()).get('GBR:locate')).toBeTruthy();
     expect((await store.dump()).reviewLog[0]).toMatchObject({ key: 'GBR:locate', answer: 'GBR', grade: p.selected });
   });
@@ -55,11 +53,9 @@ describe('QuizController', () => {
     await settings.set('learning.homeCountry', 'SOM');
     quiz.start();
     expect(item().countryId).toBe('SOM');
-    quiz.continueIntro();
     quiz.answerLocate('SOL'); // Somaliland counts as Somalia
     expect(phase()).toMatchObject({ name: 'reveal', result: { correct: true } });
     await quiz.accept();
-    quiz.continueIntro();
     const target = item().countryId;
     quiz.answerLocate('NZL');
     const p = phase();
@@ -74,7 +70,6 @@ describe('QuizController', () => {
 
   it('ocean clicks are wrong with no distance', () => {
     quiz.start();
-    quiz.continueIntro();
     quiz.answerLocate(null);
     expect(phase()).toMatchObject({ name: 'reveal', autoGrade: 'again', result: { kmOff: null, clickedId: null } });
   });
@@ -83,7 +78,6 @@ describe('QuizController', () => {
     await settings.set('learning.newPerDay', 2);
     quiz.start();
     for (let i = 0; i < 2; i++) {
-      quiz.continueIntro();
       quiz.answerLocate(item().countryId);
       quiz.select('easy');
       await quiz.accept();
@@ -92,7 +86,7 @@ describe('QuizController', () => {
     clock.advance(DAY);
     expect(quiz.snapshot().newItems.map((i) => i.key)).toEqual(['GBR:name', 'IRL:name', ...quiz.snapshot().newItems.slice(2).map((i) => i.key)]);
     quiz.start();
-    expect(phase()).toMatchObject({ name: 'question', item: { key: 'GBR:name' } }); // no intro: already met
+    expect(phase()).toMatchObject({ name: 'question', item: { key: 'GBR:name' } });
     quiz.answerName('great britain');
     expect(phase()).toMatchObject({ name: 'reveal', result: { correct: true, typo: false } });
     await quiz.accept();
@@ -103,7 +97,6 @@ describe('QuizController', () => {
 
   it("gave up = Again; can't grade twice", async () => {
     quiz.start();
-    quiz.continueIntro();
     quiz.giveUp();
     expect(phase()).toMatchObject({ name: 'reveal', autoGrade: 'again', result: { gaveUp: true } });
     await Promise.all([quiz.accept(), quiz.accept()]);
@@ -113,7 +106,6 @@ describe('QuizController', () => {
   it('learn more grants another batch', async () => {
     await settings.set('learning.newPerDay', 1);
     quiz.start();
-    quiz.continueIntro();
     quiz.answerLocate('GBR');
     await quiz.accept();
     // Only GBR's learning step remains; strict learn-ahead ends the session.
@@ -122,6 +114,6 @@ describe('QuizController', () => {
     quiz.start();
     expect(phase().name).toBe('summary');
     await quiz.learnMore();
-    expect(phase()).toMatchObject({ name: 'intro', item: { countryId: 'IRL' } });
+    expect(phase()).toMatchObject({ name: 'question', item: { countryId: 'IRL', direction: 'locate' } });
   });
 });

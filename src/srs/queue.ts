@@ -37,7 +37,7 @@ export interface QueueItem {
   countryId: CountryId;
   direction: Direction;
   kind: ItemKind;
-  /** First ever card for this country (an intro card is shown before it). */
+  /** First ever card for this country (as opposed to a next-day sibling). */
   firstForCountry: boolean;
 }
 

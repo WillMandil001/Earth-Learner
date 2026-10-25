@@ -16,7 +16,6 @@ export interface LearningSettings {
   pauseNewIfDueAbove: number;
   /** When nothing else is due, learning cards due within this many minutes are shown early. */
   learnAheadMinutes: number;
-  showIntroCards: boolean;
   burySiblings: boolean;
   dayStartHour: number;
 }
@@ -48,7 +47,6 @@ export const DEFAULT_SETTINGS: Settings = {
     maxReviewsPerDay: 200,
     pauseNewIfDueAbove: 50,
     learnAheadMinutes: 20,
-    showIntroCards: true,
     burySiblings: true,
     dayStartHour: 4,
   },
@@ -160,13 +158,6 @@ export const FIELDS: FieldSpec[] = [
     integer: true,
     label: 'Learn-ahead window (minutes)',
     description: 'When nothing else is due, show short-step cards this early instead of ending the session.',
-  },
-  {
-    path: 'learning.showIntroCards',
-    section: 'learning',
-    kind: 'boolean',
-    label: 'Introduce new countries',
-    description: 'Show each country once, ungraded, before its first question.',
   },
   {
     path: 'learning.burySiblings',

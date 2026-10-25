@@ -74,7 +74,7 @@ the app runs without re-running the script.
   allowance, and an ambiguity guard. A near-miss is accepted only if it is within the allowance of the
   target and of no other country.
 - **QuizController** (`src/quiz/QuizController.ts`) is the state machine:
-  `idle → (intro →) question → reveal → … → summary`. UI components and `QuizGlobeBinding` render from it.
+  `idle → question → reveal → … → summary`. UI components and `QuizGlobeBinding` render from it.
 
 ## Persistence
 

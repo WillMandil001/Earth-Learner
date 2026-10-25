@@ -83,7 +83,7 @@ async function main(): Promise<void> {
   });
 
   /** A card is on screen: no tooltips, info panel or label toggling (they would give answers away). */
-  const inQuestion = () => mode === 'learn' && ['intro', 'question', 'reveal'].includes(quiz.state.name);
+  const inQuestion = () => mode === 'learn' && ['question', 'reveal'].includes(quiz.state.name);
 
   function setMode(m: AppMode): void {
     mode = m;
@@ -138,10 +138,6 @@ async function main(): Promise<void> {
         if (accept) void quiz.accept();
         else quiz.select((['again', 'hard', 'good', 'easy'] as const)[Number(e.key) - 1]!);
         return;
-      }
-      if (p.name === 'intro' && accept) {
-        e.preventDefault();
-        return quiz.continueIntro();
       }
     }
     const key = e.key.toLowerCase();

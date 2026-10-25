@@ -46,7 +46,6 @@ export interface SessionStats {
 
 export type QuizPhase =
   | { name: 'idle' }
-  | { name: 'intro'; item: QueueItem }
   | { name: 'question'; item: QueueItem }
   | {
       name: 'reveal';
@@ -79,7 +78,7 @@ interface Deps {
 
 /**
  * The learning loop as an explicit state machine:
- * idle → (intro →) question → reveal → next question … → summary → idle.
+ * idle → question → reveal → next question … → summary → idle.
  * UI components render from `phase`; nothing here touches the DOM or the globe.
  */
 export class QuizController {
@@ -170,11 +169,6 @@ export class QuizController {
     this.daily = { ...this.today(now), extraNew: this.today(now).extraNew + this.settings.learning.newPerDay };
     await this.deps.store.saveMeta(this.meta());
     this.start('normal');
-  }
-
-  continueIntro(): void {
-    if (this.phase.name !== 'intro') return;
-    this.ask(this.phase.item);
   }
 
   /** Locate answer: the feature clicked on the globe (null = ocean). */
@@ -286,7 +280,7 @@ export class QuizController {
 
   currentCard(): CardDebugInfo | null {
     const p = this.phase;
-    if (p.name !== 'intro' && p.name !== 'question' && p.name !== 'reveal') return null;
+    if (p.name !== 'question' && p.name !== 'reveal') return null;
     const rec = this.cards.get(p.item.key);
     const now = clock.now();
     return {
@@ -329,11 +323,6 @@ export class QuizController {
         : pickNext(q, { reviewsSinceNew: this.reviewsSinceNew }, now, this.settings.learning.learnAheadMinutes);
     if (!next) {
       this.phase = { name: 'summary', stats: { ...this.stats, endedAt: Date.now() }, mode: this.mode };
-      this.emit();
-      return;
-    }
-    if (next.firstForCountry && this.settings.learning.showIntroCards) {
-      this.phase = { name: 'intro', item: next };
       this.emit();
       return;
     }

@@ -51,8 +51,6 @@ export class QuizPanel {
         return renderStartScreen(this.quiz, this.settings);
       case 'summary':
         return renderSessionSummary(this.quiz, p.stats, this.onExplore);
-      case 'intro':
-        return this.frame(p, this.intro(p.item.countryId));
       case 'question':
         return this.frame(p, p.item.direction === 'locate' ? this.locate(p.item.countryId) : this.name());
       case 'reveal':
@@ -90,18 +88,6 @@ export class QuizPanel {
         h('button', { class: 'link-button', title: 'End session', onclick: () => this.quiz.stop() }, 'End'),
       ),
       body,
-    );
-  }
-
-  private intro(id: CountryId): HTMLElement {
-    const m = this.meta.get(id);
-    return h(
-      'div',
-      { class: 'quiz-body' },
-      h('p', { class: 'eyebrow' }, 'New country'),
-      h('h2', { class: 'country-name' }, this.quiz.displayName(id)),
-      m && h('p', { class: 'muted' }, [m.subregion, m.continent].filter((x, i, a) => x && a.indexOf(x) === i).join(' · ')),
-      h('div', { class: 'actions' }, h('button', { class: 'primary', onclick: () => this.quiz.continueIntro() }, 'Continue ⏎')),
     );
   }
 

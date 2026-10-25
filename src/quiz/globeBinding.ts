@@ -2,7 +2,7 @@ import type { Globe } from '../globe/Globe';
 import type { CountryId, CountryMeta, HighlightStyle, LabelMode } from '../types';
 import type { QuizController, QuizPhase } from './QuizController';
 
-/** Name questions and intros never zoom past this, so small countries keep their surroundings. */
+/** Name questions never zoom past this, so small countries keep their surroundings. */
 const QUESTION_MAX_ZOOM = 8;
 const QUESTION_FILL = 0.5;
 const FLASHES = 3;
@@ -52,17 +52,13 @@ export class QuizGlobeBinding {
     const frame = () =>
       void this.globe.flyToCountry(id, { anchor, maxZoom: QUESTION_MAX_ZOOM, fill: QUESTION_FILL });
 
-    if (p.name === 'intro') {
-      this.globe.setHighlights({ [id]: 'target' });
-      frame();
-    } else if (p.name === 'question') {
+    if (p.name === 'question') {
       if (p.item.direction === 'locate') {
         // The camera stays where it is: finding the country is the question.
         this.globe.clearHighlights();
       } else {
         this.globe.setHighlights({ [id]: 'target' });
-        // Already framed by the intro for this country? Then don't fly again.
-        if (!(prev?.name === 'intro' && prev.item.countryId === id)) frame();
+        frame();
       }
     } else if (p.name === 'reveal') {
       // Re-selecting a grade re-emits reveal: only set up the reveal once.
